@@ -1,0 +1,1117 @@
+Parameters for POST /{username}/{version}/{phone_number_id}/messages:
+- Name: version, In: path, Required: True
+- Name: username, In: path, Required: True
+- Name: phone_number_id, In: path, Required: True
+
+Request Body:
+{
+  "required": true,
+  "content": {
+    "application/json": {
+      "schema": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/Text"
+          },
+          {
+            "$ref": "#/components/schemas/Image"
+          },
+          {
+            "$ref": "#/components/schemas/Audio"
+          },
+          {
+            "$ref": "#/components/schemas/Video"
+          },
+          {
+            "$ref": "#/components/schemas/Document"
+          },
+          {
+            "$ref": "#/components/schemas/Reaction"
+          },
+          {
+            "$ref": "#/components/schemas/Location"
+          },
+          {
+            "$ref": "#/components/schemas/Contacts"
+          },
+          {
+            "$ref": "#/components/schemas/Poll"
+          },
+          {
+            "$ref": "#/components/schemas/Sticker"
+          },
+          {
+            "$ref": "#/components/schemas/Revoke"
+          },
+          {
+            "$ref": "#/components/schemas/Interactive"
+          }
+        ]
+      },
+      "examples": {
+        "text": {
+          "summary": "Send Text Message",
+          "description": "Enviar uma mensagem de texto",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "delayTyping": 0,
+            "type": "text",
+            "text": {
+              "body": "Ola Mundo!"
+            }
+          }
+        },
+        "reply_text": {
+          "summary": "Send Reply to Text Message",
+          "description": "Responder uma Mensagem com Texto",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "delayTyping": 0,
+            "context": {
+              "message_id": "<MSGID_OF_PREV_MSG>"
+            },
+            "type": "text",
+            "text": {
+              "body": "Ola Mundo!"
+            }
+          }
+        },
+        "imageByURL": {
+          "summary": "Send Image Message by URL",
+          "description": "Permite o envio de imagens para os seus chats.",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "image",
+            "viewOnce": false,
+            "image": {
+              "link": "https://filesamples.com/samples/image/jpg/sample_640%C3%97426.jpg",
+              "caption": "Imagem de teste"
+            }
+          }
+        },
+        "reply_imageByURL": {
+          "summary": "Send Reply to Image Message by URL",
+          "description": "Responder uma mensagem com uma imagem",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "context": {
+              "message_id": "<MSGID_OF_PREV_MSG>"
+            },
+            "type": "image",
+            "viewOnce": false,
+            "image": {
+              "link": "https://filesamples.com/samples/image/jpg/sample_640%C3%97426.jpg",
+              "caption": "Imagem de resposta"
+            }
+          }
+        },
+        "imageByID": {
+          "summary": "Send Image Message by ID",
+          "description": "Permite o envio de imagens para os seus chats.",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "image",
+            "viewOnce": false,
+            "image": {
+              "id": "",
+              "caption": "Imagem de teste"
+            }
+          }
+        },
+        "reply_imageByID": {
+          "summary": "Send Reply to Image Message by ID",
+          "description": "Responder uma mensagem com uma imagem",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "context": {
+              "message_id": "<MSGID_OF_PREV_MSG>"
+            },
+            "type": "image",
+            "viewOnce": false,
+            "image": {
+              "id": "",
+              "caption": "Imagem de resposta"
+            }
+          }
+        },
+        "audioByURL": {
+          "summary": "Send Audio Message by URL",
+          "description": "Permite o envio de \u00e1udio para os seus chats.",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "audio",
+            "audio": {
+              "link": "https://filesamples.com/samples/audio/mp3/sample4.mp3"
+            }
+          }
+        },
+        "reply_audioByURL": {
+          "summary": "Send Reply to Audio Message by URL",
+          "description": "Responder uma mensagem com \u00e1udio",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "context": {
+              "message_id": "<MSGID_OF_PREV_MSG>"
+            },
+            "type": "audio",
+            "audio": {
+              "link": "https://filesamples.com/samples/audio/mp3/sample4.mp3"
+            }
+          }
+        },
+        "audioByID": {
+          "summary": "Send Audio Message by ID",
+          "description": "Permite o envio de \u00e1udio para os seus chats.",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "audio",
+            "audio": {
+              "id": ""
+            }
+          }
+        },
+        "reply_audioByID": {
+          "summary": "Send Reply to Audio Message by ID",
+          "description": "Responder uma mensagem com \u00e1udio",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "context": {
+              "message_id": "<MSGID_OF_PREV_MSG>"
+            },
+            "type": "audio",
+            "audio": {
+              "id": ""
+            }
+          }
+        },
+        "videoByURL": {
+          "summary": "Send Video Message by URL",
+          "description": "Permite o envio de v\u00eddeo para os seus chats.",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "video",
+            "viewOnce": false,
+            "video": {
+              "link": "https://filesamples.com/samples/video/mp4/sample_960x400_ocean_with_audio.mp4",
+              "caption": "V\u00eddeo de teste"
+            }
+          }
+        },
+        "reply_videoByURL": {
+          "summary": "Send Reply to Video Message by URL",
+          "description": "Responder uma mensagem com v\u00eddeo",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "context": {
+              "message_id": "<MSGID_OF_PREV_MSG>"
+            },
+            "type": "video",
+            "video": {
+              "link": "https://filesamples.com/samples/video/mp4/sample_960x400_ocean_with_audio.mp4",
+              "caption": "V\u00eddeo de resposta"
+            }
+          }
+        },
+        "videoByID": {
+          "summary": "Send Video Message by ID",
+          "description": "Permite o envio de v\u00eddeo para os seus chats.",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "video",
+            "viewOnce": false,
+            "video": {
+              "id": "",
+              "caption": "V\u00eddeo de teste"
+            }
+          }
+        },
+        "reply_videoByID": {
+          "summary": "Send Reply to Video Message by ID",
+          "description": "Responder uma mensagem com v\u00eddeo",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "context": {
+              "message_id": "<MSGID_OF_PREV_MSG>"
+            },
+            "type": "video",
+            "video": {
+              "id": "",
+              "caption": "V\u00eddeo de resposta"
+            }
+          }
+        },
+        "documentByURL": {
+          "summary": "Send Document Message by URL",
+          "description": "Permite o envio de documentos para os seus chats.",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "document",
+            "document": {
+              "link": "https://filesamples.com/samples/document/pdf/sample3.pdf",
+              "caption": "Documento de teste",
+              "fileName": "documento.pdf"
+            }
+          }
+        },
+        "reply_documentByURL": {
+          "summary": "Send Reply to Document Message by URL",
+          "description": "Responder uma mensagem com documento",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "context": {
+              "message_id": "<MSGID_OF_PREV_MSG>"
+            },
+            "type": "document",
+            "document": {
+              "link": "https://filesamples.com/samples/document/pdf/sample3.pdf",
+              "caption": "Documento de resposta",
+              "fileName": "documento.pdf"
+            }
+          }
+        },
+        "documentByID": {
+          "summary": "Send Document Message by ID",
+          "description": "Permite o envio de documentos para os seus chats.",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "document",
+            "document": {
+              "id": "",
+              "caption": "Documento de teste",
+              "fileName": "documento.pdf"
+            }
+          }
+        },
+        "reply_documentByID": {
+          "summary": "Send Reply to Document Message by ID",
+          "description": "Responder uma mensagem com documento",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "context": {
+              "message_id": "<MSGID_OF_PREV_MSG>"
+            },
+            "type": "document",
+            "document": {
+              "id": "",
+              "caption": "Documento de resposta",
+              "fileName": "documento.pdf"
+            }
+          }
+        },
+        "stickerByURL": {
+          "summary": "Send Sticker Message by URL",
+          "description": "Permite o envio de stickers para os seus chats.",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "sticker",
+            "sticker": {
+              "link": "https://filesamples.com/samples/image/webp/sample1.webp"
+            }
+          }
+        },
+        "reply_stickerByURL": {
+          "summary": "Send Reply to Sticker Message by URL",
+          "description": "Responder uma mensagem com sticker",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "context": {
+              "message_id": "<MSGID_OF_PREV_MSG>"
+            },
+            "type": "sticker",
+            "sticker": {
+              "link": "https://filesamples.com/samples/image/webp/sample1.webp"
+            }
+          }
+        },
+        "stickerByID": {
+          "summary": "Send Sticker Message by ID",
+          "description": "Permite o envio de stickers para os seus chats.",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "sticker",
+            "sticker": {
+              "id": ""
+            }
+          }
+        },
+        "reply_stickerByID": {
+          "summary": "Send Reply to Sticker Message by ID",
+          "description": "Responder uma mensagem com sticker",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "context": {
+              "message_id": "<MSGID_OF_PREV_MSG>"
+            },
+            "type": "sticker",
+            "sticker": {
+              "id": ""
+            }
+          }
+        },
+        "reaction": {
+          "summary": "Send Reply with Reaction Message",
+          "description": "Neste m\u00e9todo voc\u00ea poder\u00e1 enviar rea\u00e7\u00f5es a mensagens enviadas ou recebidas.\n\n\tPara remover uma reacao anteriormente enviada, basta passar o parametro emoji vazio",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "reaction",
+            "reaction": {
+              "message_id": "<WAM_ID>",
+              "emoji": "\ud83d\ude42"
+            }
+          }
+        },
+        "location": {
+          "summary": "Send Location Message",
+          "description": "Enviar um localiza\u00e7\u00e3o",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "location",
+            "location": {
+              "latitude": "-23.5855563",
+              "longitude": "-46.6920806",
+              "name": "Museu do Ipiranga",
+              "address": "Parque da Independ\u00eancia - Ipiranga, S\u00e3o Paulo - SP, 04263-000"
+            }
+          }
+        },
+        "reply_location": {
+          "summary": "Send Reply to Location Message",
+          "description": "Responder uma mensagem com uma localiza\u00e7\u00e3o",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "context": {
+              "message_id": "<MSGID_OF_PREV_MSG>"
+            },
+            "type": "location",
+            "location": {
+              "latitude": "-23.5855563",
+              "longitude": "-46.6920806",
+              "name": "Museu do Ipiranga",
+              "address": "Parque da Independ\u00eancia - Ipiranga, S\u00e3o Paulo - SP, 04263-000"
+            }
+          }
+        },
+        "contacts": {
+          "summary": "Send Contact Message",
+          "description": "Enviar Contato",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "contacts",
+            "contacts": [
+              {
+                "addresses": [
+                  {
+                    "street": "123 Elm St",
+                    "city": "Springfield",
+                    "state": "IL",
+                    "zip": "62704",
+                    "country": "United States",
+                    "country_code": "US",
+                    "type": "HOME"
+                  }
+                ],
+                "birthday": "1990-06-15",
+                "emails": [
+                  {
+                    "email": "johndoe@workmail.com",
+                    "type": "WORK"
+                  }
+                ],
+                "name": {
+                  "formatted_name": "John A. Doe Jr.",
+                  "first_name": "John",
+                  "last_name": "Doe",
+                  "middle_name": "Alexander",
+                  "suffix": "Jr.",
+                  "prefix": "Mr."
+                },
+                "org": {
+                  "company": "Tech Innovations Inc.",
+                  "department": "Research & Development",
+                  "title": "Senior Engineer"
+                },
+                "phones": [
+                  {
+                    "phone": "+15555551234",
+                    "wa_id": "15555551234",
+                    "type": "WORK"
+                  }
+                ],
+                "urls": [
+                  {
+                    "url": "https://www.johndoeblog.com",
+                    "type": "HOME"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "reply_contacts": {
+          "summary": "Send Reply to Contact Message",
+          "description": "Responder uma mensagem com um contato",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "context": {
+              "message_id": "<MSGID_OF_PREV_MSG>"
+            },
+            "type": "contacts",
+            "contacts": [
+              {
+                "name": {
+                  "formatted_name": "John Smith"
+                },
+                "phones": [
+                  {
+                    "phone": "+1 (940) 555-1234",
+                    "type": "HOME"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "send_poll": {
+          "summary": "Enviar Enquete",
+          "description": "Enviar Enquete",
+          "value": {
+            "groupId": "120363322254690973@g.us",
+            "delayMessage": 0,
+            "type": "poll",
+            "poll": {
+              "question": "Quem foi o melhor piloto de F1 de todos os tempos ?",
+              "options": [
+                "Ayrton Senna",
+                "Michael Schumacher",
+                "Lewis Hamilton",
+                "Rubens Barichello",
+                "Outros"
+              ],
+              "maxSelectableOptions": 1
+            }
+          }
+        },
+        "interactive_button_reply": {
+          "summary": "Send Interactive Message with Reply Buttons",
+          "description": "Enviar mensagem interativa com bot\u00f5es do tipo resposta",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "interactive",
+            "interactive": {
+              "type": "button",
+              "header": {
+                "type": "text",
+                "text": "Confirma\u00e7\u00e3o necess\u00e1ria"
+              },
+              "body": {
+                "text": "Voc\u00ea deseja confirmar esta a\u00e7\u00e3o?"
+              },
+              "footer": {
+                "text": "Selecione uma op\u00e7\u00e3o"
+              },
+              "action": {
+                "buttons": [
+                  {
+                    "type": "reply",
+                    "reply": {
+                      "id": "confirm_yes",
+                      "title": "Sim, confirmo"
+                    }
+                  },
+                  {
+                    "type": "reply",
+                    "reply": {
+                      "id": "confirm_no",
+                      "title": "N\u00e3o, cancelar"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "interactive_button_mixed": {
+          "summary": "Send Interactive Message with Mixed Buttons",
+          "description": "Enviar mensagem interativa com bot\u00f5es de tipos diferentes",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "interactive",
+            "interactive": {
+              "type": "button",
+              "body": {
+                "text": "Precisa de ajuda? Escolha uma das op\u00e7\u00f5es abaixo:"
+              },
+              "action": {
+                "buttons": [
+                  {
+                    "type": "call",
+                    "call": {
+                      "title": "Ligar Emerg\u00eancia",
+                      "phone_number": "+5511999999999"
+                    }
+                  },
+                  {
+                    "type": "url",
+                    "url": {
+                      "title": "Nosso Site",
+                      "url": "https://shopee.com.br"
+                    }
+                  },
+                  {
+                    "type": "copy_code",
+                    "copy_code": {
+                      "title": "Chave PIX",
+                      "copy_code": "ax4r3mkew788adc93wsljuu110"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "interactive_button_header_image": {
+          "summary": "Send Interactive Button Message with Image Header",
+          "description": "Enviar mensagem interativa com cabe\u00e7alho de imagem",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "interactive",
+            "interactive": {
+              "type": "button",
+              "header": {
+                "type": "image",
+                "image": {
+                  "link": "https://img.cdndsgni.com/preview/11269215-m.jpg"
+                }
+              },
+              "body": {
+                "text": "\ud83d\udcb3 *Novo Cart\u00e3o Black*\n\nAcumule 3x mais pontos em suas compras internacionais e tenha acesso a salas VIP.\n\nDeseja solicitar o seu?"
+              },
+              "footer": {
+                "text": "Sujeito a an\u00e1lise de cr\u00e9dito"
+              },
+              "action": {
+                "buttons": [
+                  {
+                    "type": "reply",
+                    "reply": {
+                      "id": "request_card",
+                      "title": "Solicitar Agora"
+                    }
+                  },
+                  {
+                    "type": "url",
+                    "url": {
+                      "title": "Ver Benef\u00edcios",
+                      "url": "https://www.sisprimedobrasil.com.br/produto/cartao-black/"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "interactive_button_header_video": {
+          "summary": "Send Interactive Button Message with Video Header",
+          "description": "Enviar mensagem interativa com cabe\u00e7alho de v\u00eddeo",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "interactive",
+            "interactive": {
+              "type": "button",
+              "header": {
+                "type": "video",
+                "video": {
+                  "link": "https://pub-2e5faae6684c4c70b16801dba963112c.r2.dev/treino.mp4"
+                }
+              },
+              "body": {
+                "text": "\ud83c\udfcb\ufe0f\u200d\u2642\ufe0f *Treino em Casa*\n\nDescubra como manter a forma sem sair de casa com nosso novo programa de exerc\u00edcios.\n\nAssista ao v\u00eddeo e comece hoje!"
+              },
+              "footer": {
+                "text": "30 dias de garantia"
+              },
+              "action": {
+                "buttons": [
+                  {
+                    "type": "reply",
+                    "reply": {
+                      "id": "start_training",
+                      "title": "Come\u00e7ar Agora"
+                    }
+                  },
+                  {
+                    "type": "url",
+                    "url": {
+                      "title": "Saiba Mais",
+                      "url": "https://smartfit.com.br"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "interactive_button_header_location": {
+          "summary": "Send Interactive Button Message with Location Header",
+          "description": "Enviar mensagem interativa com cabe\u00e7alho de localiza\u00e7\u00e3o",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "interactive",
+            "interactive": {
+              "type": "button",
+              "header": {
+                "type": "location",
+                "location": {
+                  "latitude": "-23.561414",
+                  "longitude": "-46.6558819",
+                  "name": "Escrit\u00f3rio Central",
+                  "address": "Av. Paulista, 1000 - Bela Vista, S\u00e3o Paulo - SP"
+                }
+              },
+              "body": {
+                "text": "\ud83d\udccd *Visite nosso escrit\u00f3rio*\n\nEstamos de portas abertas para receber voc\u00ea! Agende uma visita ou veja como chegar.\n\nEsperamos por voc\u00ea!"
+              },
+              "footer": {
+                "text": "Seg-Sex das 9h \u00e0s 18h"
+              },
+              "action": {
+                "buttons": [
+                  {
+                    "type": "reply",
+                    "reply": {
+                      "id": "schedule_visit",
+                      "title": "Agendar Visita"
+                    }
+                  },
+                  {
+                    "type": "url",
+                    "url": {
+                      "title": "Como Chegar",
+                      "url": "https://maps.google.com/?q=Av.+Paulista,+1000"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "interactive_button_header_document": {
+          "summary": "Send Interactive Button Message with Document Header",
+          "description": "Enviar mensagem interativa com cabe\u00e7alho de documento",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "interactive",
+            "interactive": {
+              "type": "button",
+              "header": {
+                "type": "document",
+                "document": {
+                  "link": "https://filesamples.com/samples/document/pdf/sample3.pdf"
+                }
+              },
+              "body": {
+                "text": "\ud83d\udcc4 *Proposta Comercial*\n\nSegue em anexo a proposta comercial detalhada conforme solicitado.\n\nPor favor, analise o documento e nos d\u00ea um retorno."
+              },
+              "footer": {
+                "text": "V\u00e1lido por 7 dias"
+              },
+              "action": {
+                "buttons": [
+                  {
+                    "type": "reply",
+                    "reply": {
+                      "id": "accept_proposal",
+                      "title": "Aceitar Proposta"
+                    }
+                  },
+                  {
+                    "type": "reply",
+                    "reply": {
+                      "id": "request_changes",
+                      "title": "Solicitar Ajustes"
+                    }
+                  },
+                  {
+                    "type": "call",
+                    "call": {
+                      "title": "Falar com Consultor",
+                      "phone_number": "+5511999999999"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "interactive_list": {
+          "summary": "Send Interactive List Message",
+          "description": "Enviar mensagem interativa do tipo lista",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "interactive",
+            "interactive": {
+              "type": "list",
+              "header": {
+                "type": "text",
+                "text": "Menu de Servi\u00e7os"
+              },
+              "body": {
+                "text": "Selecione o servi\u00e7o desejado:"
+              },
+              "footer": {
+                "text": "Atendimento 24h"
+              },
+              "action": {
+                "button": "Ver Servi\u00e7os",
+                "sections": [
+                  {
+                    "title": "Suporte T\u00e9cnico",
+                    "rows": [
+                      {
+                        "id": "tech_support_1",
+                        "title": "Problema com Login",
+                        "description": "Ajuda com acesso ao sistema"
+                      },
+                      {
+                        "id": "tech_support_2",
+                        "title": "Erro no Sistema",
+                        "description": "Reportar bugs e erros"
+                      }
+                    ]
+                  },
+                  {
+                    "title": "Atendimento Comercial",
+                    "rows": [
+                      {
+                        "id": "sales_1",
+                        "title": "Solicitar Or\u00e7amento",
+                        "description": "Obter pre\u00e7os dos servi\u00e7os"
+                      },
+                      {
+                        "id": "sales_2",
+                        "title": "D\u00favidas sobre Planos",
+                        "description": "Informa\u00e7\u00f5es sobre assinaturas"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "interactive_carousel": {
+          "summary": "Send Interactive Carousel Message",
+          "description": "Enviar mensagem interativa do tipo carrossel",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "interactive",
+            "interactive": {
+              "type": "carousel",
+              "body": {
+                "text": "\ud83d\udd25 Ofertas da semana selecionadas pra voc\u00ea! Deslize e escolha a melhor op\u00e7\u00e3o."
+              },
+              "action": {
+                "cards": [
+                  {
+                    "card_index": 0,
+                    "header": {
+                      "type": "image",
+                      "image": {
+                        "link": "https://www.apple.com/v/iphone-17/c/images/overview/contrast/iphone_17__ck7zzemcw37m_large.jpg"
+                      }
+                    },
+                    "body": {
+                      "text": "\ud83d\udcf1 Iphone 17 Pro Max\n128GB \u2022 C\u00e2mera Tripla \u2022 5G\nDe R$ 3.499 por R$ 2.799"
+                    },
+                    "footer": {
+                      "text": "Frete gr\u00e1tis para todo o Brasil"
+                    },
+                    "action": {
+                      "buttons": [
+                        {
+                          "type": "reply",
+                          "reply": {
+                            "id": "buy_smartphone_x_pro",
+                            "title": "Comprar agora"
+                          }
+                        },
+                        {
+                          "type": "url",
+                          "url": {
+                            "title": "Ver detalhes",
+                            "url": "https://www.apple.com/br/iphone-17-pro/"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "card_index": 1,
+                    "header": {
+                      "type": "video",
+                      "video": {
+                        "link": "https://pub-2e5faae6684c4c70b16801dba963112c.r2.dev/plano-fibra.mp4"
+                      }
+                    },
+                    "body": {
+                      "text": "\ud83c\udf10 Plano Internet Ultra\n500MB \u2022 Wi-Fi 6 \u2022 Suporte 24h\nIdeal para home office e streaming"
+                    },
+                    "footer": {
+                      "text": "Instala\u00e7\u00e3o r\u00e1pida em at\u00e9 48h"
+                    },
+                    "action": {
+                      "buttons": [
+                        {
+                          "type": "reply",
+                          "reply": {
+                            "id": "subscribe_internet_500mb",
+                            "title": "Assinar plano"
+                          }
+                        },
+                        {
+                          "type": "copy_code",
+                          "copy_code": {
+                            "title": "Copiar cupom",
+                            "copy_code": "ULTRA500OFF"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "card_index": 2,
+                    "header": {
+                      "type": "image",
+                      "image": {
+                        "link": "https://filesamples.com/samples/image/jpg/sample_640\u00d7426.jpg"
+                      }
+                    },
+                    "body": {
+                      "text": "\ud83e\udd1d Atendimento Personalizado\nFale diretamente com um especialista para tirar d\u00favidas ou montar um plano sob medida."
+                    },
+                    "footer": {
+                      "text": "Atendimento humano, sem rob\u00f4s"
+                    },
+                    "action": {
+                      "buttons": [
+                        {
+                          "type": "call",
+                          "call": {
+                            "title": "Ligar agora",
+                            "phone_number": "+551140028922"
+                          }
+                        },
+                        {
+                          "type": "reply",
+                          "reply": {
+                            "id": "request_specialist",
+                            "title": "Quero atendimento"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "card_index": 3,
+                    "header": {
+                      "type": "image",
+                      "image": {
+                        "link": "https://filesamples.com/samples/image/jpg/sample_640\u00d7426.jpg"
+                      }
+                    },
+                    "body": {
+                      "text": "\ud83c\udf81 Cupom Exclusivo WhatsApp\nGanhe desconto especial na sua pr\u00f3xima compra."
+                    },
+                    "footer": {
+                      "text": "V\u00e1lido apenas hoje"
+                    },
+                    "action": {
+                      "buttons": [
+                        {
+                          "type": "copy_code",
+                          "copy_code": {
+                            "title": "Copiar cupom",
+                            "copy_code": "WPP10OFF"
+                          }
+                        },
+                        {
+                          "type": "url",
+                          "url": {
+                            "title": "Usar cupom",
+                            "url": "https://shopee.com.br/"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "interactive_button_with_header_image": {
+          "summary": "Send Interactive Button Message with Image Header",
+          "description": "Enviar mensagem interativa com cabe\u00e7alho de imagem",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "type": "interactive",
+            "interactive": {
+              "type": "button",
+              "header": {
+                "type": "image",
+                "image": {
+                  "link": "https://filesamples.com/samples/image/jpg/sample_640\u00d7426.jpg"
+                }
+              },
+              "body": {
+                "text": "Gostou desta promo\u00e7\u00e3o? Aproveite agora!"
+              },
+              "footer": {
+                "text": "Oferta por tempo limitado"
+              },
+              "action": {
+                "buttons": [
+                  {
+                    "type": "reply",
+                    "reply": {
+                      "id": "promo_yes",
+                      "title": "Quero aproveitar"
+                    }
+                  },
+                  {
+                    "type": "url",
+                    "url": {
+                      "title": "Ver mais",
+                      "url": "https://shopee.com.br/"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "interactive_reply_button": {
+          "summary": "Send Reply to Interactive Button Message",
+          "description": "Responder uma mensagem com bot\u00f5es interativos",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "context": {
+              "message_id": "<MSGID_OF_PREV_MSG>"
+            },
+            "type": "interactive",
+            "interactive": {
+              "type": "button",
+              "body": {
+                "text": "Esta \u00e9 uma resposta com bot\u00f5es interativos"
+              },
+              "action": {
+                "buttons": [
+                  {
+                    "type": "reply",
+                    "reply": {
+                      "id": "reply_option_1",
+                      "title": "Op\u00e7\u00e3o 1"
+                    }
+                  },
+                  {
+                    "type": "reply",
+                    "reply": {
+                      "id": "reply_option_2",
+                      "title": "Op\u00e7\u00e3o 2"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "interactive_reply_list": {
+          "summary": "Send Reply to Interactive List Message",
+          "description": "Responder uma mensagem com lista interativa",
+          "value": {
+            "to": "5543996254177",
+            "delayMessage": 0,
+            "context": {
+              "message_id": "<MSGID_OF_PREV_MSG>"
+            },
+            "type": "interactive",
+            "interactive": {
+              "type": "list",
+              "body": {
+                "text": "Aqui est\u00e3o as op\u00e7\u00f5es dispon\u00edveis em resposta \u00e0 sua pergunta:"
+              },
+              "action": {
+                "button": "Escolher Op\u00e7\u00e3o",
+                "sections": [
+                  {
+                    "title": "Op\u00e7\u00f5es de Resposta",
+                    "rows": [
+                      {
+                        "id": "reply_list_1",
+                        "title": "Resposta 1",
+                        "description": "Primeira op\u00e7\u00e3o de resposta"
+                      },
+                      {
+                        "id": "reply_list_2",
+                        "title": "Resposta 2",
+                        "description": "Segunda op\u00e7\u00e3o de resposta"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "revoke": {
+          "summary": "Deletar Mensagem",
+          "description": "Deletar uma mensagem",
+          "value": {
+            "delayMessage": 0,
+            "type": "revoke",
+            "revoke": {
+              "messageID": "<MSGID_OF_PREV_MSG>"
+            }
+          }
+        }
+      }
+    }
+  }
+}

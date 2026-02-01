@@ -1,0 +1,21 @@
+Base Path: 
+
+Relevant Endpoints:
+POST /webhook/connection/connected
+POST /webhook/connection/disconnected
+POST /webhook/message/audio
+POST /webhook/message/button-reply
+POST /webhook/message/contacts
+POST /webhook/message/document
+POST /webhook/message/image
+POST /webhook/message/list-reply
+POST /webhook/message/location
+POST /webhook/message/reaction
+POST /webhook/message/sticker
+POST /webhook/message/text
+POST /webhook/message/video
+POST /webhook/status/delivered
+POST /webhook/status/played
+POST /webhook/status/read
+POST /{username}/{version}/{phone_number_id}/messages
+POST /{username}/{version}/{phone_number_id}/status

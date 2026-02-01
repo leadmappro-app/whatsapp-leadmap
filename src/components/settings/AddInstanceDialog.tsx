@@ -42,7 +42,7 @@ const formSchema = z.object({
   instance_id_external: z.string().optional(),
   api_url: z.string().optional(),
   api_key: z.string().optional(),
-  provider_type: z.enum(["self_hosted", "cloud", "mock"]),
+  provider_type: z.enum(["self_hosted", "cloud", "mock", "uzapi"]),
 }).refine((data) => {
   // Mock mode doesn't require URL/Key
   if (data.provider_type === 'mock') return true;
@@ -82,21 +82,22 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
 
   const handleTestConnection = async () => {
     const values = form.getValues();
-    
+
     // Validate required fields for testing
-    const fieldsToValidate = values.provider_type === 'cloud'
+    const fieldsToValidate = (values.provider_type === 'cloud' || values.provider_type === 'uzapi')
       ? ["api_url", "api_key", "instance_name", "instance_id_external"] as const
       : ["api_url", "api_key", "instance_name"] as const;
     const isValid = await form.trigger(fieldsToValidate);
-    
+
     if (!isValid) {
       toast.error("Preencha os campos obrigatórios para testar a conexão");
       return;
     }
 
-    // For Cloud, instance_id_external is required
-    if (values.provider_type === 'cloud' && !values.instance_id_external) {
-      toast.error("ID da Instância é obrigatório para Evolution Cloud");
+    // For Cloud and UzAPI, instance_id_external is required
+    if ((values.provider_type === 'cloud' || values.provider_type === 'uzapi') && !values.instance_id_external) {
+      const fieldName = values.provider_type === 'uzapi' ? 'Phone Number ID' : 'ID da Instância';
+      toast.error(`${fieldName} é obrigatório`);
       return;
     }
 
@@ -120,7 +121,7 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
       if (data?.error) {
         throw new Error(data.error);
       }
-      
+
       setConnectionTested(true);
       toast.success("Conexão testada com sucesso!");
     } catch (error) {
@@ -135,20 +136,22 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
   const onSubmit = async (values: FormValues) => {
     try {
       const isMock = values.provider_type === 'mock';
-      
+
       // Create instance with secrets and provider_type
       const result = await createInstance.mutateAsync({
         name: values.name,
         instance_name: isMock ? `mock-${Date.now()}` : values.instance_name,
-        instance_id_external: values.provider_type === 'cloud' ? values.instance_id_external : undefined,
+        instance_id_external: (values.provider_type === 'cloud' || values.provider_type === 'uzapi')
+          ? values.instance_id_external
+          : undefined,
         api_url: isMock ? 'mock://local' : values.api_url!,
         api_key: isMock ? 'mock' : values.api_key!,
         provider_type: values.provider_type,
         status: isMock ? 'connected' : undefined,
       } as any);
-      
+
       setCreatedInstanceId(result.id);
-      
+
       if (isMock) {
         toast.success("Instância mock criada!", {
           description: "Use as DevTools para gerar dados de teste"
@@ -189,7 +192,7 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
             <DialogHeader>
               <DialogTitle>Nova Instância</DialogTitle>
               <DialogDescription>
-                Adicione uma nova instância da Evolution API
+                Adicione uma nova instância da Evolution API ou UzAPI
               </DialogDescription>
             </DialogHeader>
 
@@ -207,7 +210,7 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
                             <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent side="right" className="max-w-[250px]">
-                            <p>Selecione <strong>Self-Hosted</strong> se você instalou o Evolution API em seu próprio servidor. Selecione <strong>Cloud</strong> se usa Evolution Cloud (evoapicloud.com ou similar).</p>
+                            <p>Selecione o provedor que você está utilizando.</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -220,6 +223,7 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
                         <SelectContent>
                           <SelectItem value="self_hosted">Evolution API Self-Hosted</SelectItem>
                           <SelectItem value="cloud">Evolution API Cloud</SelectItem>
+                          <SelectItem value="uzapi">UzAPI (Gateway Oficial)</SelectItem>
                           <SelectItem value="mock">
                             <div className="flex items-center gap-2">
                               🧪 Modo Mock (Teste sem API)
@@ -268,7 +272,7 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
                             <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent side="right" className="max-w-[250px]">
-                            <p>Nome exato da instância configurada no Evolution API. Encontre no painel do Evolution em 'Instances'.</p>
+                            <p>{providerType === 'uzapi' ? 'Nome de identificação interno.' : 'Nome exato da instância configurada no Evolution API.'}</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -280,25 +284,30 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
                   )}
                 />
 
-                {providerType === 'cloud' && (
+                {(providerType === 'cloud' || providerType === 'uzapi') && (
                   <FormField
                     control={form.control}
                     name="instance_id_external"
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center gap-1.5">
-                          <FormLabel>ID da Instância (UUID)</FormLabel>
+                          <FormLabel>{providerType === 'uzapi' ? 'Phone Number ID' : 'ID da Instância (UUID)'}</FormLabel>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                             </TooltipTrigger>
                             <TooltipContent side="right" className="max-w-[250px]">
-                              <p>ID único da instância no Evolution Cloud (UUID). Encontre em "Definições → Referência de API" no painel da instância.</p>
+                              <p>
+                                {providerType === 'uzapi'
+                                  ? 'ID do número de telefone (Phone Number ID) fornecido pela UzAPI.'
+                                  : 'ID único da instância no Evolution Cloud (UUID).'
+                                }
+                              </p>
                             </TooltipContent>
                           </Tooltip>
                         </div>
                         <FormControl>
-                          <Input placeholder="ead6f2f2-7633-4e41-a08d-7272300a6ba1" {...field} />
+                          <Input placeholder={providerType === 'uzapi' ? "1234567890" : "ead6f2f2-7633-4e41-a08d-7272300a6ba1"} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -321,21 +330,31 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
                               </TooltipTrigger>
                               <TooltipContent side="right" className="max-w-[250px]">
                                 <p>
-                                  {providerType === 'cloud' 
+                                  {providerType === 'cloud'
                                     ? 'URL do Evolution Cloud (ex: https://api.evoapicloud.com)'
-                                    : 'URL de acesso ao seu Evolution API. É a mesma URL que você usa no navegador para acessar o painel.'}
+                                    : providerType === 'uzapi'
+                                      ? 'URL base da UzAPI com usuário (ex: https://api.uzapi.com.br/meu-usuario)'
+                                      : 'URL de acesso ao seu Evolution API.'}
                                 </p>
                               </TooltipContent>
                             </Tooltip>
                           </div>
                           <FormControl>
-                            <Input 
-                              placeholder={providerType === 'cloud' 
-                                ? "https://api.evoapicloud.com" 
-                                : "https://api.evolution.com"
-                              } 
-                              {...field} 
+                            <Input
+                              placeholder={
+                                providerType === 'cloud'
+                                  ? "https://api.evoapicloud.com"
+                                  : providerType === 'uzapi'
+                                    ? "https://api.uzapi.com.br/username"
+                                    : "https://api.evolution.com"
+                              }
+                              {...field}
                             />
+                            {providerType === 'uzapi' && (
+                              <p className="text-[0.8rem] text-muted-foreground mt-1">
+                                Importante: Inclua seu <b>nome de usuário</b> no final da URL.
+                              </p>
+                            )}
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -349,7 +368,7 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
                         <FormItem>
                           <div className="flex items-center gap-1.5">
                             <FormLabel>
-                              {providerType === 'cloud' ? 'Token da Instância' : 'API Key'}
+                              {providerType === 'cloud' ? 'Token da Instância' : 'API Key/Token'}
                             </FormLabel>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -358,8 +377,10 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
                               <TooltipContent side="right" className="max-w-[250px]">
                                 <p>
                                   {providerType === 'cloud'
-                                    ? 'Token de autenticação da instância. No Evolution Cloud, encontre nas configurações da instância ou ao criá-la.'
-                                    : 'Chave de autenticação da API. Se usa Cloudfy, encontre em "Infraestrutura" no painel da ferramenta.'}
+                                    ? 'Token de autenticação da instância.'
+                                    : providerType === 'uzapi'
+                                      ? 'Token de acesso (Bearer Token) da UzAPI.'
+                                      : 'Chave de autenticação da API.'}
                                 </p>
                               </TooltipContent>
                             </Tooltip>
@@ -422,7 +443,7 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
                 Instância criada com sucesso!
               </DialogTitle>
               <DialogDescription>
-                Configure o webhook na Evolution API
+                Configure o webhook {providerType === 'uzapi' ? 'na UzAPI' : 'na Evolution API'}
               </DialogDescription>
             </DialogHeader>
 

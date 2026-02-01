@@ -18,6 +18,10 @@ interface SendMessageRequest {
 
 // Helper function to get Evolution API auth headers based on provider type
 function getEvolutionAuthHeaders(apiKey: string, providerType: string): Record<string, string> {
+  // UzAPI uses Bearer token
+  if (providerType === 'uzapi') {
+    return { 'Authorization': `Bearer ${apiKey}` };
+  }
   // Evolution Cloud confirmou: ambos usam header 'apikey'
   return { apikey: apiKey };
 }
@@ -35,9 +39,9 @@ Deno.serve(async (req) => {
     );
 
     const body: SendMessageRequest = await req.json();
-    console.log('[send-whatsapp-message] Request received:', { 
-      conversationId: body.conversationId, 
-      messageType: body.messageType 
+    console.log('[send-whatsapp-message] Request received:', {
+      conversationId: body.conversationId,
+      messageType: body.messageType
     });
 
     // Validate request
@@ -99,10 +103,10 @@ Deno.serve(async (req) => {
     // MOCK MODE: Skip API call, just save to DB
     if (providerType === 'mock') {
       console.log('[send-whatsapp-message] Mock mode - skipping Evolution API call');
-      
+
       const messageId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const messageContent = body.messageType === 'text' 
-        ? (body.content || '') 
+      const messageContent = body.messageType === 'text'
+        ? (body.content || '')
         : (body.content || `Sent ${body.messageType}`);
 
       // Save message to database
@@ -157,7 +161,7 @@ Deno.serve(async (req) => {
             .update({ status: 'delivered' })
             .eq('message_id', messageId);
           console.log('[send-whatsapp-message] Mock status updated to delivered');
-          
+
           setTimeout(async () => {
             try {
               await supabase
@@ -180,7 +184,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // REAL MODE: Call Evolution API
+    // REAL MODE: Call Integration API
     // Fetch instance secrets
     const { data: secrets, error: secretsError } = await supabase
       .from('whatsapp_instance_secrets')
@@ -196,8 +200,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // For Cloud, use instance_id_external (UUID) instead of instance_name
-    const instanceIdentifier = providerType === 'cloud' && instanceIdExternal
+    // For Cloud/UzAPI, use instance_id_external instead of instance_name
+    const instanceIdentifier = (providerType === 'cloud' || providerType === 'uzapi') && instanceIdExternal
       ? instanceIdExternal
       : instanceName;
 
@@ -206,21 +210,37 @@ Deno.serve(async (req) => {
     // Determine destination number format
     const destinationNumber = getDestinationNumber(contact.phone_number);
 
-    // Build request for Evolution API
-    const { endpoint, requestBody } = buildEvolutionRequest(
-      secrets.api_url,
-      instanceIdentifier,
-      destinationNumber,
-      body
-    );
+    let endpoint = '';
+    let requestBody: any = {};
 
-    console.log('[send-whatsapp-message] Evolution API endpoint:', endpoint);
+    if (providerType === 'uzapi') {
+      const result = buildUzApiRequest(
+        secrets.api_url,
+        instanceIdentifier,
+        destinationNumber,
+        body
+      );
+      endpoint = result.endpoint;
+      requestBody = result.requestBody;
+    } else {
+      // Default to Evolution API
+      const result = buildEvolutionRequest(
+        secrets.api_url,
+        instanceIdentifier,
+        destinationNumber,
+        body
+      );
+      endpoint = result.endpoint;
+      requestBody = result.requestBody;
+    }
+
+    console.log('[send-whatsapp-message] API endpoint:', endpoint);
 
     // Get correct auth headers based on provider type
     const authHeaders = getEvolutionAuthHeaders(secrets.api_key, providerType);
 
-    // Send to Evolution API
-    const evolutionResponse = await fetch(endpoint, {
+    // Send to API
+    const apiResponse = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -229,41 +249,46 @@ Deno.serve(async (req) => {
       body: JSON.stringify(requestBody),
     });
 
-    if (!evolutionResponse.ok) {
-      const errorText = await evolutionResponse.text();
-      console.error('[send-whatsapp-message] Evolution API error:', errorText);
+    if (!apiResponse.ok) {
+      const errorText = await apiResponse.text();
+      console.error('[send-whatsapp-message] API error:', errorText);
       return new Response(
-        JSON.stringify({ success: false, error: 'Failed to send message via Evolution API' }),
+        JSON.stringify({ success: false, error: 'Failed to send message via API', details: errorText }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const evolutionData = await evolutionResponse.json();
-    console.log('[send-whatsapp-message] Evolution API response:', evolutionData);
+    const apiData = await apiResponse.json();
+    console.log('[send-whatsapp-message] API response:', apiData);
 
-    // Extract message ID from Evolution API response
-    const messageId = evolutionData.key?.id || `msg_${Date.now()}`;
+    // Extract message ID
+    let messageId = `msg_${Date.now()}`;
 
-    // Extract media URL from Evolution API response
-    let extractedMediaUrl: string | null = null;
-    
-    if (body.messageType === 'audio' && evolutionData.message?.audioMessage?.url) {
-      extractedMediaUrl = evolutionData.message.audioMessage.url;
-    } else if (body.messageType === 'image' && evolutionData.message?.imageMessage?.url) {
-      extractedMediaUrl = evolutionData.message.imageMessage.url;
-    } else if (body.messageType === 'video' && evolutionData.message?.videoMessage?.url) {
-      extractedMediaUrl = evolutionData.message.videoMessage.url;
-    } else if (body.messageType === 'document' && evolutionData.message?.documentMessage?.url) {
-      extractedMediaUrl = evolutionData.message.documentMessage.url;
+    // UzAPI/Cloud API usually retuns { messages: [{ id: '...' }] }
+    if (providerType === 'uzapi' && apiData.messages && apiData.messages[0]?.id) {
+      messageId = apiData.messages[0].id;
+    } else if (apiData.key?.id) {
+      // Evolution API
+      messageId = apiData.key.id;
     }
 
-    if (extractedMediaUrl) {
-      console.log('[send-whatsapp-message] Extracted media URL:', extractedMediaUrl);
+    // Extract media URL from response if available (mainly handled by Evolution)
+    let extractedMediaUrl: string | null = null;
+    if (providerType !== 'uzapi') {
+      if (body.messageType === 'audio' && apiData.message?.audioMessage?.url) {
+        extractedMediaUrl = apiData.message.audioMessage.url;
+      } else if (body.messageType === 'image' && apiData.message?.imageMessage?.url) {
+        extractedMediaUrl = apiData.message.imageMessage.url;
+      } else if (body.messageType === 'video' && apiData.message?.videoMessage?.url) {
+        extractedMediaUrl = apiData.message.videoMessage.url;
+      } else if (body.messageType === 'document' && apiData.message?.documentMessage?.url) {
+        extractedMediaUrl = apiData.message.documentMessage.url;
+      }
     }
 
     // Save message to database
-    const messageContent = body.messageType === 'text' 
-      ? (body.content || '') 
+    const messageContent = body.messageType === 'text'
+      ? (body.content || '')
       : (body.content || `Sent ${body.messageType}`);
 
     const { data: savedMessage, error: saveError } = await supabase
@@ -338,7 +363,7 @@ function buildEvolutionRequest(
 ): { endpoint: string; requestBody: any } {
   // Remove trailing slash
   let baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
-  
+
   // Remove /manager suffix if present (message endpoints are at root level)
   baseUrl = baseUrl.replace(/\/manager$/, '');
 
@@ -382,11 +407,6 @@ function buildEvolutionRequest(
         throw new Error('Missing audio data');
       }
 
-      console.log('[send-whatsapp-message] Audio payload prepared:', {
-        type: body.mediaBase64 ? 'base64' : 'url',
-        length: audioData.length,
-      });
-      
       return {
         endpoint: `${baseUrl}/message/sendWhatsAppAudio/${instanceName}`,
         requestBody: {
@@ -422,4 +442,69 @@ function buildEvolutionRequest(
     default:
       throw new Error(`Unsupported message type: ${body.messageType}`);
   }
+}
+
+function buildUzApiRequest(
+  apiUrl: string,
+  phoneNumberId: string,
+  number: string,
+  body: SendMessageRequest
+): { endpoint: string; requestBody: any } {
+  // Remove trailing slash
+  const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+
+  // Endpoint: /v1/{phone_number_id}/messages
+  // Note: apiUrl is expected to be "https://api.uzapi.com.br/username"
+  const endpoint = `${baseUrl}/v1/${phoneNumberId}/messages`;
+
+  // Use structure from UzAPI Swagger
+  // NO messaging_product field
+  const requestBody: any = {
+    to: number,
+    delayMessage: 0,
+    delayTyping: 0,
+    type: body.messageType,
+  };
+
+  switch (body.messageType) {
+    case 'text':
+      requestBody.text = { body: body.content };
+      if (body.quotedMessageId) {
+        requestBody.context = { message_id: body.quotedMessageId };
+      }
+      break;
+
+    case 'image':
+      requestBody.image = {
+        link: body.mediaUrl,
+        caption: body.content
+      };
+      break;
+
+    case 'audio':
+      requestBody.audio = {
+        link: body.mediaUrl
+      };
+      break;
+
+    case 'video':
+      requestBody.video = {
+        link: body.mediaUrl,
+        caption: body.content
+      };
+      break;
+
+    case 'document':
+      requestBody.document = {
+        link: body.mediaUrl,
+        caption: body.content,
+        fileName: body.fileName
+      };
+      break;
+
+    default:
+      throw new Error(`Unsupported message type for UzAPI: ${body.messageType}`);
+  }
+
+  return { endpoint, requestBody };
 }
