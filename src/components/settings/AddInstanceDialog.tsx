@@ -350,12 +350,12 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
                               }
                               {...field}
                             />
-                            {providerType === 'uzapi' && (
-                              <p className="text-[0.8rem] text-muted-foreground mt-1">
-                                Importante: Inclua seu <b>nome de usuário</b> no final da URL.
-                              </p>
-                            )}
                           </FormControl>
+                          {providerType === 'uzapi' && (
+                            <p className="text-[0.8rem] text-muted-foreground mt-1">
+                              Importante: Inclua seu <b>nome de usuário</b> no final da URL.
+                            </p>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
