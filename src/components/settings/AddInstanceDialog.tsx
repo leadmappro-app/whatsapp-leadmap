@@ -46,7 +46,8 @@ const formSchema = z.object({
   provider_type: z.enum(["self_hosted", "cloud", "mock", "uzapi"]),
 }).refine((data) => {
   if (data.provider_type === 'mock') return true;
-  return data.api_url && data.api_url.trim() !== '' && data.api_key && data.api_key.trim() !== '';
+  console.log('DEBUG Form:', JSON.stringify({ url: data.api_url, key: data.api_key ? 'SET' : 'EMPTY' }));
+  return !!(data.api_url && data.api_key);
 }, {
   message: "Preencha Username e Token",
   path: ["api_key"],
