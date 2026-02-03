@@ -45,12 +45,11 @@ const formSchema = z.object({
   api_key: z.string().optional(),
   provider_type: z.enum(["self_hosted", "cloud", "mock", "uzapi"]),
 }).refine((data) => {
-  // Mock mode doesn't require URL/Key
   if (data.provider_type === 'mock') return true;
-  return data.api_url && data.api_key;
+  return data.api_url && data.api_url.trim() !== '' && data.api_key && data.api_key.trim() !== '';
 }, {
-  message: "URL e API Key são obrigatórios para instâncias reais",
-  path: ["api_url"],
+  message: "Preencha Username e Token",
+  path: ["api_key"],
 });
 
 type FormValues = z.infer<typeof formSchema>;
