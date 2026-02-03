@@ -450,12 +450,10 @@ function buildUzApiRequest(
   number: string,
   body: SendMessageRequest
 ): { endpoint: string; requestBody: any } {
-  // Remove trailing slash
-  const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
-
-  // Endpoint: /v1/{phone_number_id}/messages
-  // Note: apiUrl is expected to be "https://api.uzapi.com.br/username"
-  const endpoint = `${baseUrl}/v1/${phoneNumberId}/messages`;
+  // apiUrl contains only the username (not a full URL)
+  // Build full URL: https://api.uzapi.com.br/{username}/v1/{phone_number_id}/messages
+  const username = apiUrl.trim();
+  const endpoint = `https://api.uzapi.com.br/${username}/v1/${phoneNumberId}/messages`;
 
   // Use structure from UzAPI Swagger
   // NO messaging_product field

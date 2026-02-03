@@ -36,7 +36,7 @@ function normalizePhoneNumber(remoteJid: string): { phone: string; isGroup: bool
     phone = `${countryCode}${ddd}9${number}`;
     console.log(`[evolution-webhook] Brazilian phone normalized: ${phone}`);
   }
-  
+
   return { phone, isGroup };
 }
 
@@ -63,7 +63,7 @@ function isEditedMessage(message: any): boolean {
 function getMessageContent(message: any, type: string): string {
   if (message.conversation) return message.conversation;
   if (message.extendedTextMessage?.text) return message.extendedTextMessage.text;
-  
+
   // Handle contact messages
   if (message.contactMessage) {
     return message.contactMessage.displayName || '📇 Contato';
@@ -72,11 +72,11 @@ function getMessageContent(message: any, type: string): string {
     const count = message.contactsArrayMessage.contacts?.length || 0;
     return `📇 ${count} contato${count !== 1 ? 's' : ''}`;
   }
-  
+
   // For media messages, try to get caption
   const mediaMessage = message[`${type}Message`];
   if (mediaMessage?.caption) return mediaMessage.caption;
-  
+
   // Fallback descriptions
   const descriptions: Record<string, string> = {
     image: '📷 Imagem',
@@ -85,7 +85,7 @@ function getMessageContent(message: any, type: string): string {
     document: '📄 Documento',
     sticker: '🎨 Sticker',
   };
-  
+
   return descriptions[type] || 'Mensagem';
 }
 
@@ -101,7 +101,7 @@ async function downloadAndUploadMedia(
 ): Promise<string | null> {
   try {
     console.log('[evolution-webhook] Downloading media from Evolution API...');
-    
+
     // Determine correct auth header based on provider type
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -111,7 +111,7 @@ async function downloadAndUploadMedia(
     } else {
       headers['apikey'] = apiKey;
     }
-    
+
     const response = await fetch(
       `${apiUrl}/chat/getBase64FromMediaMessage/${instanceName}`,
       {
@@ -128,7 +128,7 @@ async function downloadAndUploadMedia(
 
     const data = await response.json();
     const base64Data = data.base64;
-    
+
     if (!base64Data) {
       console.error('[evolution-webhook] No base64 data in response');
       return null;
@@ -197,7 +197,7 @@ async function fetchAndUpdateProfilePicture(
     } else {
       headers['apikey'] = apiKey;
     }
-    
+
     const response = await fetch(
       `${apiUrl}/chat/fetchProfile/${instanceName}`,
       {
@@ -218,12 +218,12 @@ async function fetchAndUpdateProfilePicture(
     if (profilePictureUrl) {
       await supabase
         .from('whatsapp_contacts')
-        .update({ 
+        .update({
           profile_picture_url: profilePictureUrl,
           updated_at: new Date().toISOString()
         })
         .eq('id', contactId);
-      
+
       console.log(`[evolution-webhook] Profile picture updated for contact: ${contactId}`);
     }
   } catch (error) {
@@ -275,9 +275,9 @@ async function findOrCreateContact(
     if (existingContact && existingContact.phone_number !== phoneNumber) {
       await supabase
         .from('whatsapp_contacts')
-        .update({ 
+        .update({
           phone_number: phoneNumber,
-          updated_at: new Date().toISOString() 
+          updated_at: new Date().toISOString()
         })
         .eq('id', existingContact.id);
       console.log(`[evolution-webhook] Contact phone normalized: ${existingContact.phone_number} -> ${phoneNumber}`);
@@ -288,29 +288,29 @@ async function findOrCreateContact(
       // 1. Message is NOT from me (avoid setting contact name to instance owner)
       // 2. We have a real name (not just phone number)
       // 3. Current name is the phone number
-      const shouldUpdateName = !isFromMe && 
-                               name !== phoneNumber && 
-                               existingContact.name === phoneNumber;
-      
+      const shouldUpdateName = !isFromMe &&
+        name !== phoneNumber &&
+        existingContact.name === phoneNumber;
+
       if (shouldUpdateName) {
         await supabase
           .from('whatsapp_contacts')
-          .update({ 
+          .update({
             name: name,
-            updated_at: new Date().toISOString() 
+            updated_at: new Date().toISOString()
           })
           .eq('id', existingContact.id);
-        
+
         console.log(`[evolution-webhook] Contact name updated: ${existingContact.id} -> ${name}`);
       }
-      
+
       return existingContact.id;
     }
 
     // Create new contact
     // If message is from me, use phone number as name (to avoid using instance owner's name)
     const contactName = isFromMe ? phoneNumber : (name || phoneNumber);
-    
+
     const { data: newContact, error } = await supabase
       .from('whatsapp_contacts')
       .insert({
@@ -328,13 +328,13 @@ async function findOrCreateContact(
     }
 
     console.log(`[evolution-webhook] Contact created: ${newContact.id} Name: ${name}`);
-    
+
     // Buscar foto de perfil em background (fire-and-forget)
     if (apiUrl && apiKey && instanceName) {
       fetchAndUpdateProfilePicture(supabase, apiUrl, apiKey, instanceName, phoneNumber, newContact.id, providerType)
         .catch(err => console.log('[evolution-webhook] Background profile fetch error:', err));
     }
-    
+
     return newContact.id;
   } catch (error) {
     console.error('[evolution-webhook] Error in findOrCreateContact:', error);
@@ -451,10 +451,10 @@ async function findOrCreateConversation(
     }
 
     console.log('[evolution-webhook] Conversation created:', newConversation.id);
-    
+
     // Apply auto-assignment for new conversations
     await applyAutoAssignment(supabase, instanceId, newConversation.id);
-    
+
     return newConversation.id;
   } catch (error) {
     console.error('[evolution-webhook] Error in findOrCreateConversation:', error);
@@ -495,7 +495,7 @@ async function checkAndTriggerAutoSentiment(
     // 3. Se atingiu threshold, disparar análise (async, não bloqueia)
     if (count && count >= AUTO_SENTIMENT_THRESHOLD) {
       console.log(`[auto-sentiment] Triggering auto analysis for ${conversationId}`);
-      
+
       // Chamar edge function de análise de sentimento (fire and forget)
       fetch(`${supabaseUrl}/functions/v1/analyze-whatsapp-sentiment`, {
         method: 'POST',
@@ -546,7 +546,7 @@ async function checkAndTriggerAutoCategorization(
     // 3. Se atingiu threshold, disparar categorização (async, não bloqueia)
     if (count && count >= AUTO_CATEGORIZATION_THRESHOLD) {
       console.log(`[auto-categorization] Triggering auto categorization for ${conversationId}`);
-      
+
       // Chamar edge function de categorização (fire and forget)
       fetch(`${supabaseUrl}/functions/v1/categorize-whatsapp-conversation`, {
         method: 'POST',
@@ -568,30 +568,30 @@ async function processReaction(payload: EvolutionWebhookPayload, supabase: any) 
     const { data } = payload;
     const { key, message } = data;
     const reaction = message.reactionMessage;
-    
+
     if (!reaction?.key?.id) {
       console.log('[evolution-webhook] Invalid reaction data');
       return;
     }
-    
+
     const targetMessageId = reaction.key.id;
     const emoji = reaction.text;
     const reactorJid = key.remoteJid;
-    
+
     console.log('[evolution-webhook] Processing reaction:', emoji || '(removed)', 'on message:', targetMessageId);
-    
+
     // Find the target message to get conversation_id
     const { data: targetMessage } = await supabase
       .from('whatsapp_messages')
       .select('conversation_id')
       .eq('message_id', targetMessageId)
       .maybeSingle();
-    
+
     if (!targetMessage) {
       console.log('[evolution-webhook] Target message not found:', targetMessageId);
       return;
     }
-    
+
     // If emoji is empty, it's a reaction removal
     if (!emoji || emoji === '') {
       const { error } = await supabase
@@ -599,7 +599,7 @@ async function processReaction(payload: EvolutionWebhookPayload, supabase: any) 
         .delete()
         .eq('message_id', targetMessageId)
         .eq('reactor_jid', reactorJid);
-      
+
       if (error) {
         console.error('[evolution-webhook] Error removing reaction:', error);
       } else {
@@ -607,7 +607,7 @@ async function processReaction(payload: EvolutionWebhookPayload, supabase: any) 
       }
       return;
     }
-    
+
     // UPSERT: update if exists, insert if not
     const { error } = await supabase
       .from('whatsapp_reactions')
@@ -617,11 +617,11 @@ async function processReaction(payload: EvolutionWebhookPayload, supabase: any) 
         emoji,
         reactor_jid: reactorJid,
         is_from_me: key.fromMe,
-      }, { 
+      }, {
         onConflict: 'message_id,reactor_jid',
-        ignoreDuplicates: false 
+        ignoreDuplicates: false
       });
-    
+
     if (error) {
       console.error('[evolution-webhook] Error saving reaction:', error);
     } else {
@@ -661,25 +661,25 @@ async function processMessageUpsert(payload: EvolutionWebhookPayload, supabase: 
       console.error('[evolution-webhook] Instance not found:', instance);
       return;
     }
-    
+
     // Determine which identifier to use for Evolution API calls
     // Cloud instances use instance_id_external (UUID), self-hosted use instance_name
     const evolutionInstanceId = instanceData.provider_type === 'cloud' && instanceData.instance_id_external
       ? instanceData.instance_id_external
       : instanceData.instance_name;
-    
+
     // Update status to 'connected' if processing a message (instance is clearly connected)
     if (instanceData.status !== 'connected') {
       await supabase
         .from('whatsapp_instances')
-        .update({ 
+        .update({
           status: 'connected',
           updated_at: new Date().toISOString()
         })
         .eq('id', instanceData.id);
       console.log(`[evolution-webhook] Updated instance ${instanceData.instance_name} status to connected`);
     }
-    
+
     // Get instance secrets
     const { data: secrets, error: secretsError } = await supabase
       .from('whatsapp_instance_secrets')
@@ -730,13 +730,13 @@ async function processMessageUpsert(payload: EvolutionWebhookPayload, supabase: 
 
     // Detect message type and content
     const messageType = getMessageType(message);
-    
+
     // If it's a reaction, process it separately
     if (messageType === 'reaction') {
       await processReaction(payload, supabase);
       return;
     }
-    
+
     const content = getMessageContent(message, messageType);
     console.log('[evolution-webhook] Message type:', messageType, 'Content preview:', content.substring(0, 50));
 
@@ -796,7 +796,7 @@ async function processMessageUpsert(payload: EvolutionWebhookPayload, supabase: 
     if (messageType === 'audio' && mediaUrl) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      
+
       // Get the message ID that was just inserted
       const { data: insertedMessage } = await supabase
         .from('whatsapp_messages')
@@ -807,7 +807,7 @@ async function processMessageUpsert(payload: EvolutionWebhookPayload, supabase: 
 
       if (insertedMessage) {
         console.log('[evolution-webhook] Triggering auto-transcription for message:', insertedMessage.id);
-        
+
         // Fire-and-forget: call transcription without awaiting
         fetch(`${supabaseUrl}/functions/v1/transcribe-audio`, {
           method: 'POST',
@@ -935,29 +935,29 @@ async function processMessageEdit(payload: EvolutionWebhookPayload, supabase: an
   try {
     const { data } = payload;
     const editedMessage = data.message?.editedMessage || data.message?.protocolMessage?.editedMessage;
-    
+
     if (!editedMessage) {
       console.log('[evolution-webhook] No editedMessage found in payload');
       return;
     }
-    
+
     const messageId = editedMessage.key?.id || data.key?.id;
     const newContent = editedMessage.conversation || editedMessage.extendedTextMessage?.text || '';
-    
+
     console.log('[evolution-webhook] Processing message edit:', messageId);
-    
+
     // 1. Fetch current message
     const { data: currentMessage, error: fetchError } = await supabase
       .from('whatsapp_messages')
       .select('id, content, original_content, conversation_id')
       .eq('message_id', messageId)
       .maybeSingle();
-    
+
     if (fetchError || !currentMessage) {
       console.error('[evolution-webhook] Error fetching message or message not found:', fetchError);
       return;
     }
-    
+
     // 2. Save to edit history
     const { error: historyError } = await supabase
       .from('whatsapp_message_edit_history')
@@ -966,11 +966,11 @@ async function processMessageEdit(payload: EvolutionWebhookPayload, supabase: an
         conversation_id: currentMessage.conversation_id,
         previous_content: currentMessage.content,
       });
-    
+
     if (historyError) {
       console.error('[evolution-webhook] Error saving edit history:', historyError);
     }
-    
+
     // 3. Update message
     const { error: updateError } = await supabase
       .from('whatsapp_messages')
@@ -981,7 +981,7 @@ async function processMessageEdit(payload: EvolutionWebhookPayload, supabase: an
         original_content: currentMessage.original_content || currentMessage.content,
       })
       .eq('message_id', messageId);
-    
+
     if (updateError) {
       console.error('[evolution-webhook] Error updating message:', updateError);
     } else {
@@ -1003,7 +1003,51 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const payload: EvolutionWebhookPayload = await req.json();
+    const body: any = await req.json();
+    let payload: EvolutionWebhookPayload;
+
+    // ========== UZAPI DETECTION & NORMALIZATION ==========
+    // Detect if this is a UzAPI webhook (has phone_number_id instead of instance)
+    const isUzApi = !!(body.phone_number_id && body.type && !body.instance);
+
+    if (isUzApi) {
+      console.log('[evolution-webhook] UzAPI payload detected:', body.type);
+
+      // Only process incoming messages, ignore status updates for now
+      if (body.type !== 'message') {
+        console.log('[evolution-webhook] Ignoring UzAPI non-message event:', body.type);
+        return new Response(
+          JSON.stringify({ success: true, event: 'uzapi_ignored' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
+
+      // Lookup instance by phone_number_id (stored in instance_id_external)
+      const { data: uzInstance, error: uzInstanceError } = await supabase
+        .from('whatsapp_instances')
+        .select('id, instance_name, provider_type')
+        .eq('instance_id_external', body.phone_number_id)
+        .eq('provider_type', 'uzapi')
+        .maybeSingle();
+
+      if (uzInstanceError || !uzInstance) {
+        console.error('[evolution-webhook] UzAPI instance not found for phone_number_id:', body.phone_number_id, uzInstanceError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Instance not found' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
+
+      console.log('[evolution-webhook] UzAPI instance found:', uzInstance.instance_name);
+
+      // Normalize UzAPI payload to Evolution format
+      payload = normalizeUzApiPayload(body, uzInstance.instance_name);
+      console.log('[evolution-webhook] Normalized to Evolution format');
+    } else {
+      // Standard Evolution API payload
+      payload = body as EvolutionWebhookPayload;
+    }
+
     console.log('[evolution-webhook] Event received:', payload.event, 'Instance:', payload.instance);
 
     // Route to appropriate handler
@@ -1033,7 +1077,7 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error('[evolution-webhook] Fatal error:', error);
-    
+
     // Still return 200 to prevent reprocessing
     return new Response(
       JSON.stringify({ success: false, error: String(error) }),
@@ -1041,3 +1085,68 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+// ========== UZAPI NORMALIZATION FUNCTION ==========
+
+/**
+ * Normalizes a UzAPI webhook payload to Evolution API format
+ */
+function normalizeUzApiPayload(uzPayload: any, instanceName: string): EvolutionWebhookPayload {
+  // Convert UzAPI phone format to Evolution format
+  const remoteJid = `${uzPayload.from}@s.whatsapp.net`;
+  const messageTimestamp = Math.floor(new Date(uzPayload.timestamp).getTime() / 1000);
+
+  // Build message object based on type
+  let message: any = {};
+
+  if (uzPayload.text) {
+    message.conversation = uzPayload.text.body;
+  } else if (uzPayload.image) {
+    message.imageMessage = {
+      url: uzPayload.image.link,
+      caption: uzPayload.image.caption || '',
+      mimetype: 'image/jpeg',
+    };
+  } else if (uzPayload.audio) {
+    message.audioMessage = {
+      url: uzPayload.audio.link,
+      mimetype: 'audio/ogg; codecs=opus',
+    };
+  } else if (uzPayload.video) {
+    message.videoMessage = {
+      url: uzPayload.video.link,
+      caption: uzPayload.video.caption || '',
+      mimetype: 'video/mp4',
+    };
+  } else if (uzPayload.document) {
+    message.documentMessage = {
+      url: uzPayload.document.link,
+      caption: uzPayload.document.caption || '',
+      fileName: uzPayload.document.fileName || 'document',
+      mimetype: 'application/pdf',
+    };
+  }
+
+  // Add context for quoted messages
+  if (uzPayload.context?.message_id) {
+    message.extendedTextMessage = message.extendedTextMessage || {};
+    message.extendedTextMessage.contextInfo = {
+      stanzaId: uzPayload.context.message_id,
+    };
+  }
+  // Build Evolution-compatible payload
+  return {
+    event: 'messages.upsert',
+    instance: instanceName,
+    data: {
+      key: {
+        remoteJid,
+        id: uzPayload.id || `uzapi_${Date.now()}`,
+        fromMe: false, // UzAPI webhooks are always from customer
+      },
+      pushName: uzPayload.from, // Will be updated by findOrCreateContact
+      message,
+      messageTimestamp,
+    },
+  };
+}
