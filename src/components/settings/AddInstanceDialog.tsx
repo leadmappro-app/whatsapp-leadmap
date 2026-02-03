@@ -323,7 +323,9 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
                       render={({ field }) => (
                         <FormItem>
                           <div className="flex items-center gap-1.5">
-                            <FormLabel>URL da API</FormLabel>
+                            <FormLabel>
+                              {providerType === 'uzapi' ? 'Username UzAPI' : 'URL da API'}
+                            </FormLabel>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Info className="h-4 w-4 text-muted-foreground cursor-help" />
@@ -333,7 +335,7 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
                                   {providerType === 'cloud'
                                     ? 'URL do Evolution Cloud (ex: https://api.evoapicloud.com)'
                                     : providerType === 'uzapi'
-                                      ? 'URL base da UzAPI com usuário (ex: https://api.uzapi.com.br/meu-usuario)'
+                                      ? 'Seu nome de usuário na plataforma UzAPI (apenas o username, sem URL)'
                                       : 'URL de acesso ao seu Evolution API.'}
                                 </p>
                               </TooltipContent>
@@ -345,15 +347,15 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
                                 providerType === 'cloud'
                                   ? "https://api.evoapicloud.com"
                                   : providerType === 'uzapi'
-                                    ? "https://api.uzapi.com.br/username"
+                                    ? "cristiannoldin"
                                     : "https://api.evolution.com"
                               }
                               {...field}
                             />
                           </FormControl>
-                          {providerType === 'uzapi' && (
+                          {providerType === 'uzapi' && field.value && (
                             <p className="text-[0.8rem] text-muted-foreground mt-1">
-                              Importante: Inclua seu <b>nome de usuário</b> no final da URL.
+                              URL gerada: <code>https://api.uzapi.com.br/{field.value}</code>
                             </p>
                           )}
                           <FormMessage />
