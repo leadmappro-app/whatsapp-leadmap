@@ -46,7 +46,6 @@ const formSchema = z.object({
   provider_type: z.enum(["self_hosted", "cloud", "mock", "uzapi"]),
 }).refine((data) => {
   if (data.provider_type === 'mock') return true;
-  console.log('DEBUG Form:', JSON.stringify({ url: data.api_url, key: data.api_key ? 'SET' : 'EMPTY' }));
   return !!(data.api_url && data.api_key);
 }, {
   message: "Preencha Username e Token",
@@ -456,7 +455,7 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
 
                   <Button
                     type="submit"
-                    disabled={(providerType !== 'mock' && !connectionTested) || createInstance.isPending}
+                    disabled={(providerType !== 'mock' && providerType !== 'uzapi' && !connectionTested) || createInstance.isPending}
                     className="ml-auto"
                   >
                     {createInstance.isPending ? (
