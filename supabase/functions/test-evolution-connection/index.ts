@@ -27,11 +27,13 @@ serve(async (req) => {
   try {
     const { api_url, api_key, instance_name, instance_id_external, provider_type } = await req.json();
 
-    console.log('🔍 Testing connection:', {
+    console.log('🔍 Testing connection - FULL DEBUG:', {
       provider_type,
       api_url,
+      api_url_type: typeof api_url,
       instance_name,
       instance_id_external: instance_id_external ? `${instance_id_external.substring(0, 8)}...` : null,
+      has_api_key: !!api_key,
     });
 
     if (!api_url || !api_key || !instance_name) {
