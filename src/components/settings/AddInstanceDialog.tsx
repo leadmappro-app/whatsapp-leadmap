@@ -40,6 +40,7 @@ const formSchema = z.object({
     .min(1, "Nome da instância obrigatório")
     .regex(/^[a-zA-Z0-9_-]+$/, "Apenas letras, números, _ e -"),
   instance_id_external: z.string().optional(),
+  waba_id: z.string().optional(),
   api_url: z.string().optional(),
   api_key: z.string().optional(),
   provider_type: z.enum(["self_hosted", "cloud", "mock", "uzapi"]),
@@ -72,6 +73,7 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
       name: "",
       instance_name: "",
       instance_id_external: "",
+      waba_id: "",
       api_url: "",
       api_key: "",
       provider_type: "self_hosted",
@@ -144,6 +146,7 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
         instance_id_external: (values.provider_type === 'cloud' || values.provider_type === 'uzapi')
           ? values.instance_id_external
           : undefined,
+        waba_id: values.provider_type === 'uzapi' ? values.waba_id : undefined,
         api_url: isMock ? 'mock://local' : values.api_url!,
         api_key: isMock ? 'mock' : values.api_key!,
         provider_type: values.provider_type,
@@ -300,20 +303,48 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
                               <p>
                                 {providerType === 'uzapi'
                                   ? 'ID do número de telefone (Phone Number ID) fornecido pela UzAPI.'
-                                  : 'ID único da instância no Evolution Cloud (UUID).'
-                                }
+                                  : 'ID único da instância no Evolution Cloud (UUID).'}
                               </p>
                             </TooltipContent>
                           </Tooltip>
                         </div>
                         <FormControl>
-                          <Input placeholder={providerType === 'uzapi' ? "1234567890" : "ead6f2f2-7633-4e41-a08d-7272300a6ba1"} {...field} />
+                          <Input placeholder={providerType === 'uzapi' ? "942911219636873" : "ead6f2f2-7633-4e41-a08d-7272300a6ba1"} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 )}
+
+                {providerType === 'uzapi' && (
+                  <FormField
+                    control={form.control}
+                    name="waba_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center gap-1.5">
+                          <FormLabel>WABA-ID</FormLabel>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-[250px]">
+                              <p>
+                                WhatsApp Business Account ID fornecido pela UzAPI (diferente do Phone Number ID).
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <FormControl>
+                          <Input placeholder="9359088363..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
 
                 {providerType !== 'mock' && (
                   <>
