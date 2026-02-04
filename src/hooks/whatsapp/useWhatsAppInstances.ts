@@ -12,6 +12,7 @@ type InstanceInsertWithSecrets = InstanceInsert & {
   api_key: string;
   provider_type?: string;
   instance_id_external?: string;
+  waba_id?: string;
 };
 
 type InstanceUpdateWithSecrets = InstanceUpdate & {

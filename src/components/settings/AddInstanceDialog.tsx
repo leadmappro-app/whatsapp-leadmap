@@ -139,14 +139,13 @@ export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps
       const isMock = values.provider_type === 'mock';
 
       // Create instance with secrets and provider_type
-      // Note: waba_id field commented out until migration is applied
       const result = await createInstance.mutateAsync({
         name: values.name,
         instance_name: isMock ? `mock-${Date.now()}` : values.instance_name,
         instance_id_external: (values.provider_type === 'cloud' || values.provider_type === 'uzapi')
           ? values.instance_id_external
           : undefined,
-        // waba_id: values.provider_type === 'uzapi' ? values.waba_id : undefined,
+        waba_id: values.provider_type === 'uzapi' ? values.waba_id : undefined,
         api_url: isMock ? 'mock://local' : values.api_url!,
         api_key: isMock ? 'mock' : values.api_key!,
         provider_type: values.provider_type,
