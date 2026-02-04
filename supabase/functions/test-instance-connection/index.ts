@@ -99,6 +99,7 @@ serve(async (req) => {
 
     let testUrl: string;
     let authHeaders: Record<string, string>;
+    let fetchInit: RequestInit = { method: 'GET' };
 
     if (providerType === 'uzapi') {
       // UzAPI: api_url contains username, instance_id_external contains phone_number_id
@@ -112,10 +113,27 @@ serve(async (req) => {
         });
       }
       
-      // UzAPI session status endpoint (WuzAPI compatible)
-      testUrl = `https://api.uzapi.com.br/${username}/v1/${phoneNumberId}/session/status`;
-      authHeaders = { 'Authorization': `Bearer ${secrets.api_key}` };
-      console.log('[test-instance-connection] Testing UzAPI connection:', testUrl);
+      // UzAPI Swagger does NOT expose a dedicated session/status route in many tenants.
+      // The most reliable “is it connected?” check is calling a lightweight authenticated endpoint.
+      // Use: POST /{username}/{version}/{phone_number_id}/chats with action=list and small pageSize.
+      testUrl = `https://api.uzapi.com.br/${username}/v1/${phoneNumberId}/chats`;
+      authHeaders = {
+        'Authorization': `Bearer ${secrets.api_key}`,
+        'Content-Type': 'application/json',
+      };
+      fetchInit = {
+        method: 'POST',
+        body: JSON.stringify({
+          delayMessage: 0,
+          type: 'chats',
+          action: 'list',
+          chats: {
+            page: 1,
+            pageSize: 1,
+          },
+        }),
+      };
+      console.log('[test-instance-connection] Testing UzAPI connection (chats list):', testUrl);
     } else {
       // Evolution API (self_hosted or cloud)
       const instanceIdentifier = providerType === 'cloud' && instanceIdExternal
@@ -127,7 +145,25 @@ serve(async (req) => {
       console.log('[test-instance-connection] Testing Evolution API with identifier:', instanceIdentifier);
     }
 
-    const response = await fetch(testUrl, { headers: authHeaders });
+    // Build request init (method/body varies by provider)
+    const requestInit: RequestInit = {
+      ...fetchInit,
+      headers: authHeaders,
+    };
+
+    let response = await fetch(testUrl, requestInit);
+
+    // Fallbacks for UzAPI (some tenants expose /session/status instead)
+    if (!response.ok && providerType === 'uzapi' && response.status === 404) {
+      const username = secrets.api_url;
+      const phoneNumberId = instanceIdExternal;
+      const fallbackUrl = `https://api.uzapi.com.br/${username}/v1/${phoneNumberId}/session/status`;
+      console.log('[test-instance-connection] UzAPI chats returned 404; trying session/status fallback:', fallbackUrl);
+      response = await fetch(fallbackUrl, {
+        method: 'GET',
+        headers: authHeaders,
+      });
+    }
 
     if (!response.ok) {
       console.error('[test-instance-connection] Evolution API returned error:', response.status);
@@ -153,13 +189,30 @@ serve(async (req) => {
     
     console.log('[test-instance-connection] Connection test successful, data:', JSON.stringify(data));
 
-    // Map Evolution API state to our status
-    // Empty response with 200 status means connected for Evolution Cloud
+    // Map upstream response to our status
+    // - Evolution Cloud: empty 200 body => connected
+    // - UzAPI: we consider 2xx as at least reachable; if response includes state hints, use them
     let newStatus = 'disconnected';
-    if (!responseText || data.state === 'open' || data.instance?.state === 'open') {
-      newStatus = 'connected';
-    } else if (data.state === 'connecting') {
-      newStatus = 'connecting';
+
+    const normalizedState = String(
+      data?.state ?? data?.instance?.state ?? data?.status ?? data?.connectionState ?? ''
+    ).toLowerCase();
+
+    if (providerType === 'uzapi') {
+      if (normalizedState.includes('connect') || normalizedState.includes('open') || data?.connected === true) {
+        newStatus = 'connected';
+      } else if (normalizedState.includes('connect')) {
+        newStatus = 'connecting';
+      } else {
+        // If UzAPI answered 2xx, treat as reachable; keep disconnected only when explicit
+        newStatus = response.ok ? 'connected' : 'disconnected';
+      }
+    } else {
+      if (!responseText || normalizedState === 'open') {
+        newStatus = 'connected';
+      } else if (normalizedState === 'connecting') {
+        newStatus = 'connecting';
+      }
     }
 
     // Update status in database
