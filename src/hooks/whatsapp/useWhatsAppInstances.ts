@@ -40,15 +40,16 @@ export const useWhatsAppInstances = () => {
 
   const createInstance = useMutation({
     mutationFn: async (instance: InstanceInsertWithSecrets) => {
-      const { api_url, api_key, provider_type, instance_id_external, ...instanceData } = instance;
+      const { api_url, api_key, provider_type, instance_id_external, waba_id, ...instanceData } = instance;
 
-      // 1. Create instance in main table with provider_type and instance_id_external
+      // 1. Create instance in main table with provider_type, instance_id_external and waba_id
       const { data: instanceResult, error: instanceError } = await supabase
         .from('whatsapp_instances')
         .insert({
           ...instanceData,
           provider_type: provider_type || 'self_hosted',
           instance_id_external: instance_id_external || null,
+          metadata: waba_id ? { waba_id } : null,
         } as any)
         .select()
         .single();
