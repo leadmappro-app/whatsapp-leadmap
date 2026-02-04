@@ -112,8 +112,8 @@ serve(async (req) => {
         });
       }
       
-      // UzAPI check status endpoint
-      testUrl = `https://api.uzapi.com.br/${username}/v1/${phoneNumberId}/check`;
+      // UzAPI session status endpoint (WuzAPI compatible)
+      testUrl = `https://api.uzapi.com.br/${username}/v1/${phoneNumberId}/session/status`;
       authHeaders = { 'Authorization': `Bearer ${secrets.api_key}` };
       console.log('[test-instance-connection] Testing UzAPI connection:', testUrl);
     } else {
