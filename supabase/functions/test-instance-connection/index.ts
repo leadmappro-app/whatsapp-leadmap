@@ -97,19 +97,37 @@ serve(async (req) => {
     const instanceIdExternal = (instance as any).instance_id_external;
     console.log('[test-instance-connection] Provider type:', providerType, 'Instance ID External:', instanceIdExternal);
 
-    // For Cloud, use instance_id_external (UUID) instead of instance_name
-    const instanceIdentifier = providerType === 'cloud' && instanceIdExternal
-      ? instanceIdExternal
-      : instance.instance_name;
+    let testUrl: string;
+    let authHeaders: Record<string, string>;
 
-    // Test connection with Evolution API using correct auth headers
-    console.log('[test-instance-connection] Testing connection to Evolution API with identifier:', instanceIdentifier);
-    const authHeaders = getEvolutionAuthHeaders(secrets.api_key, providerType);
-    
-    const response = await fetch(
-      `${secrets.api_url}/instance/connectionState/${instanceIdentifier}`,
-      { headers: authHeaders }
-    );
+    if (providerType === 'uzapi') {
+      // UzAPI: api_url contains username, instance_id_external contains phone_number_id
+      const username = secrets.api_url;
+      const phoneNumberId = instanceIdExternal;
+      
+      if (!phoneNumberId) {
+        return new Response(JSON.stringify({ error: 'Phone Number ID é obrigatório para UzAPI' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // UzAPI check status endpoint
+      testUrl = `https://api.uzapi.com.br/${username}/v1/${phoneNumberId}/check`;
+      authHeaders = { 'Authorization': `Bearer ${secrets.api_key}` };
+      console.log('[test-instance-connection] Testing UzAPI connection:', testUrl);
+    } else {
+      // Evolution API (self_hosted or cloud)
+      const instanceIdentifier = providerType === 'cloud' && instanceIdExternal
+        ? instanceIdExternal
+        : instance.instance_name;
+
+      testUrl = `${secrets.api_url}/instance/connectionState/${instanceIdentifier}`;
+      authHeaders = { apikey: secrets.api_key };
+      console.log('[test-instance-connection] Testing Evolution API with identifier:', instanceIdentifier);
+    }
+
+    const response = await fetch(testUrl, { headers: authHeaders });
 
     if (!response.ok) {
       console.error('[test-instance-connection] Evolution API returned error:', response.status);
