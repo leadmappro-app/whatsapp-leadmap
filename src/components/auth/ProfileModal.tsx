@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Loader2 } from 'lucide-react';
+import { Camera, RefreshCw } from 'lucide-react';
 
 interface ProfileModalProps {
   open: boolean;
@@ -117,7 +117,7 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
               >
                 {isUploading ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <RefreshCw className="h-4 w-4 animate-spin" />
                     Enviando...
                   </>
                 ) : (
@@ -192,7 +192,7 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
           >
             {updateProfile.isPending ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <RefreshCw className="h-4 w-4 animate-spin" />
                 Salvando...
               </>
             ) : (

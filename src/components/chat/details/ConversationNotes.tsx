@@ -3,7 +3,7 @@ import { useConversationNotes } from '@/hooks/whatsapp/useConversationNotes';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { StickyNote, Plus, Pin, PinOff, Trash2, Edit2, Check, X, Loader2 } from 'lucide-react';
+import { StickyNote, Plus, Pin, PinOff, Trash2, Edit2, Check, X, RefreshCw } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -113,7 +113,7 @@ export function ConversationNotes({ conversationId }: ConversationNotesProps) {
               className="h-7"
             >
               {isCreating ? (
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
               ) : (
                 <Check className="h-3 w-3 mr-1" />
               )}

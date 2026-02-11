@@ -21,7 +21,7 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename="/app">
         <AuthProvider>
           <NotificationProvider>
             <TooltipProvider>

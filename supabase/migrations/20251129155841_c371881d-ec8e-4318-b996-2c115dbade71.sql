@@ -5,16 +5,16 @@ CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 -- Remover cron jobs antigos se existirem
 DO $$
 BEGIN
-  PERFORM cron.unschedule('check-instances-status');
-EXCEPTION
-  WHEN undefined_object THEN NULL;
+  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'check-instances-status') THEN
+    PERFORM cron.unschedule('check-instances-status');
+  END IF;
 END $$;
 
 DO $$
 BEGIN
-  PERFORM cron.unschedule('sync-contact-profiles-daily');
-EXCEPTION
-  WHEN undefined_object THEN NULL;
+  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'sync-contact-profiles-daily') THEN
+    PERFORM cron.unschedule('sync-contact-profiles-daily');
+  END IF;
 END $$;
 
 -- Criar cron job para verificar status das instâncias (a cada 5 minutos)

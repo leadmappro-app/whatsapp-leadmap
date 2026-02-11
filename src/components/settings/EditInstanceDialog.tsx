@@ -28,7 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useWhatsAppInstances } from "@/hooks/whatsapp";
 import { Tables } from "@/integrations/supabase/types";
-import { Loader2 } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 const formSchema = z.object({
@@ -38,9 +38,9 @@ const formSchema = z.object({
     .min(1, "Nome da instância obrigatório")
     .regex(/^[a-zA-Z0-9_-]+$/, "Apenas letras, números, _ e -"),
   instance_id_external: z.string().optional(),
-  api_url: z.string().url("URL inválida"),
-  api_key: z.string().min(1, "Token/API Key obrigatório"),
-  provider_type: z.enum(["self_hosted", "cloud"]),
+  api_url: z.string().url("URL inválida").or(z.literal("")),
+  api_key: z.string().min(1, "Token/API Key obrigatório").or(z.literal("")),
+  provider_type: z.enum(["self_hosted", "cloud", "mock", "uzapi"]),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -67,7 +67,7 @@ export const EditInstanceDialog = ({
       instance_id_external: instance.instance_id_external || '',
       api_url: '',
       api_key: '',
-      provider_type: (instance.provider_type as "self_hosted" | "cloud") || 'self_hosted',
+      provider_type: (instance.provider_type as any) || 'self_hosted',
     },
   });
 
@@ -75,15 +75,17 @@ export const EditInstanceDialog = ({
 
   // Update form when instance changes
   useEffect(() => {
-    form.reset({
-      name: instance.name,
-      instance_name: instance.instance_name,
-      instance_id_external: instance.instance_id_external || '',
-      api_url: '',
-      api_key: '',
-      provider_type: (instance.provider_type as "self_hosted" | "cloud") || 'self_hosted',
-    });
-  }, [instance, form]);
+    if (open) {
+      form.reset({
+        name: instance.name,
+        instance_name: instance.instance_name,
+        instance_id_external: instance.instance_id_external || '',
+        api_url: '',
+        api_key: '',
+        provider_type: (instance.provider_type as any) || 'self_hosted',
+      });
+    }
+  }, [instance, form, open]);
 
   const onSubmit = async (values: FormValues) => {
     try {
@@ -128,6 +130,8 @@ export const EditInstanceDialog = ({
                     <SelectContent>
                       <SelectItem value="self_hosted">Evolution API Self-Hosted</SelectItem>
                       <SelectItem value="cloud">Evolution API Cloud</SelectItem>
+                      <SelectItem value="uzapi">UzAPI (Gerenciado)</SelectItem>
+                      <SelectItem value="mock">Modo Teste (Simulação)</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -225,7 +229,7 @@ export const EditInstanceDialog = ({
               </Button>
               <Button type="submit" disabled={updateInstance.isPending}>
                 {updateInstance.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                 )}
                 Salvar
               </Button>

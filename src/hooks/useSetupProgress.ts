@@ -33,8 +33,13 @@ export const useSetupProgress = () => {
   
   // Manual completions stored in localStorage
   const [manualCompletions, setManualCompletions] = useState<string[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error('Error parsing manual completions:', e);
+      return [];
+    }
   });
 
   // Check if has received first message

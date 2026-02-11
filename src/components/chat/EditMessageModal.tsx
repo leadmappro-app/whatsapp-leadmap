@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 interface EditMessageModalProps {
   isOpen: boolean;
@@ -66,7 +66,7 @@ export const EditMessageModal = ({
             onClick={handleSave}
             disabled={isLoading || !content.trim() || content === currentContent}
           >
-            {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isLoading && <RefreshCw className="h-4 w-4 animate-spin" />}
             Salvar
           </Button>
         </DialogFooter>

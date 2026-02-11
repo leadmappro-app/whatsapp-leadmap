@@ -8,7 +8,7 @@ import { useInstanceStatusMonitor } from "@/hooks/useInstanceStatusMonitor";
 import { DisconnectedInstancesBanner } from "@/components/notifications/DisconnectedInstancesBanner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, ArrowLeft, FlaskConical, Loader2, MessageSquare } from "lucide-react";
+import { Settings, ArrowLeft, FlaskConical, RefreshCw, MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -169,7 +169,7 @@ const WhatsApp = () => {
                 disabled={isActivatingMock}
               >
                 {isActivatingMock ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <FlaskConical className="h-4 w-4 mr-2" />
                 )}

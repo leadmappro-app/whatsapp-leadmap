@@ -26,30 +26,23 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useWhatsAppInstances } from "@/hooks/whatsapp";
-import { Loader2, Check, Copy, Link as LinkIcon, Info } from "lucide-react";
+import { RefreshCw, Check, Copy, Link as LinkIcon, Info, QrCode, Shield, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   name: z.string().min(1, "Nome obrigatório"),
-  instance_name: z
-    .string()
-    .min(1, "Nome da instância obrigatório")
-    .regex(/^[a-zA-Z0-9_-]+$/, "Apenas letras, números, _ e -"),
-  instance_id_external: z.string().optional(),
-  waba_id: z.string().optional(),
+  instance_name: z.string().optional(),
+  provider_type: z.enum(["self_hosted", "cloud", "mock", "uzapi"]),
+  // Pro fields (only for admin)
   api_url: z.string().optional(),
   api_key: z.string().optional(),
-  provider_type: z.enum(["self_hosted", "cloud", "mock", "uzapi"]),
-}).refine((data) => {
-  if (data.provider_type === 'mock') return true;
-  return !!(data.api_url && data.api_key);
-}, {
-  message: "Preencha Username e Token",
-  path: ["api_key"],
+  instance_id_external: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -60,459 +53,304 @@ interface AddInstanceDialogProps {
 }
 
 export const AddInstanceDialog = ({ open, onOpenChange }: AddInstanceDialogProps) => {
-  const { createInstance, testConnection } = useWhatsAppInstances();
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
-  const [connectionTested, setConnectionTested] = useState(false);
-  const [showWebhookInstructions, setShowWebhookInstructions] = useState(false);
-  const [createdInstanceId, setCreatedInstanceId] = useState<string | null>(null);
+  const { createInstance } = useWhatsAppInstances();
+  const { isAdmin } = useAuth();
+  const [isCreating, setIsCreating] = useState(false);
+  const [showQrCode, setShowQrCode] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
+  const [showProMode, setShowProMode] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
       instance_name: "",
-      instance_id_external: "",
-      waba_id: "",
+      provider_type: "uzapi",
       api_url: "",
       api_key: "",
-      provider_type: "self_hosted",
+      instance_id_external: "",
     },
   });
 
-  const providerType = form.watch("provider_type");
-
-  const handleTestConnection = async () => {
-    const values = form.getValues();
-
-    // Validate required fields for testing
-    const fieldsToValidate = (values.provider_type === 'cloud' || values.provider_type === 'uzapi')
-      ? ["api_url", "api_key", "instance_name", "instance_id_external"] as const
-      : ["api_url", "api_key", "instance_name"] as const;
-    const isValid = await form.trigger(fieldsToValidate);
-
-    if (!isValid) {
-      toast.error("Preencha os campos obrigatórios para testar a conexão");
-      return;
-    }
-
-    // For Cloud and UzAPI, instance_id_external is required
-    if ((values.provider_type === 'cloud' || values.provider_type === 'uzapi') && !values.instance_id_external) {
-      const fieldName = values.provider_type === 'uzapi' ? 'Phone Number ID' : 'ID da Instância';
-      toast.error(`${fieldName} é obrigatório`);
-      return;
-    }
-
-    setIsTestingConnection(true);
-    try {
-      // Call edge function to test connection (avoids CORS issues)
-      const { data, error } = await supabase.functions.invoke('test-evolution-connection', {
-        body: {
-          api_url: values.api_url,
-          api_key: values.api_key,
-          instance_name: values.instance_name,
-          instance_id_external: values.instance_id_external,
-          provider_type: values.provider_type
-        }
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Falha ao testar conexão');
-      }
-
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-
-      setConnectionTested(true);
-      toast.success("Conexão testada com sucesso!");
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Falha ao testar conexão";
-      toast.error(`Falha ao testar conexão: ${errorMessage}`);
-      setConnectionTested(false);
-    } finally {
-      setIsTestingConnection(false);
-    }
-  };
-
   const onSubmit = async (values: FormValues) => {
+    setIsCreating(true);
     try {
-      const isMock = values.provider_type === 'mock';
+      console.log('🚀 [AddInstanceDialog] Starting instance creation...', values);
 
-      // Create instance with secrets and provider_type
-      const result = await createInstance.mutateAsync({
-        name: values.name,
-        instance_name: isMock ? `mock-${Date.now()}` : values.instance_name,
-        instance_id_external: (values.provider_type === 'cloud' || values.provider_type === 'uzapi')
-          ? values.instance_id_external
-          : undefined,
-        waba_id: values.provider_type === 'uzapi' ? values.waba_id : undefined,
-        api_url: isMock ? 'mock://local' : values.api_url!,
-        api_key: isMock ? 'mock' : values.api_key!,
-        provider_type: values.provider_type,
-        status: isMock ? 'connected' : undefined,
-      } as any);
+      if (values.provider_type === 'uzapi' && !showProMode) {
+        // SaaS Flow: Call uazapi-manager to create instance automatically
+        // Alphanumeric name to be safer with various APIs
+        const generatedInstanceName = `inst${Math.random().toString(36).substring(2, 9)}`;
 
-      setCreatedInstanceId(result.id);
-
-      if (isMock) {
-        toast.success("Instância mock criada!", {
-          description: "Use as DevTools para gerar dados de teste"
+        const { data, error } = await supabase.functions.invoke('uazapi-manager', {
+          body: {
+            action: 'create-instance',
+            name: values.name,
+            instance_name: generatedInstanceName,
+          }
         });
-        handleClose();
+
+        if (error) {
+          console.error('❌ [AddInstanceDialog] Function error raw:', error);
+          let errMsg = error.message || "Erro ao chamar a API";
+          try {
+            if (error instanceof Error && 'context' in error) {
+              const httpError = error as any;
+              const bodyStr = await httpError.context?.json?.(); // Try to get JSON if available
+              const bodyObj = bodyStr || (httpError.context?.body ? JSON.parse(httpError.context.body) : null);
+
+              console.log('❌ [AddInstanceDialog] Error Body:', bodyObj);
+
+              if (bodyObj?.error) {
+                const inner = bodyObj.error;
+                errMsg = typeof inner === 'string' ? inner : JSON.stringify(inner);
+              } else if (bodyObj?.message) {
+                // Gateway errors like 401 Invalid JWT come as { message: "..." }
+                errMsg = bodyObj.message;
+              }
+            }
+          } catch (e) {
+            console.error('Error parsing response body', e);
+          }
+
+          throw new Error(errMsg);
+        }
+
+        if (data?.error) {
+          const errorDetail = data.error;
+          console.error('❌ [AddInstanceDialog] API error details:', errorDetail);
+          let errorMessage = "Erro na API UazAPI";
+          if (typeof errorDetail === 'string') {
+            errorMessage = errorDetail;
+          } else if (errorDetail?.message) {
+            errorMessage = errorDetail.message;
+          } else if (typeof errorDetail === 'object') {
+            try { errorMessage = JSON.stringify(errorDetail); } catch { /* keep default */ }
+          }
+          throw new Error(errorMessage);
+        }
+
+        if (!data?.instance?.id) {
+          console.error('❌ [AddInstanceDialog] No instance returned:', data);
+          throw new Error("Falha ao receber confirmação da instância criada.");
+        }
+
+        toast.success("Instância criada! Carregando QR Code...");
+
+        // Wait 2 seconds for UazAPI to process the deployment
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Fetch QR Code immediately
+        const { data: qrData, error: qrError } = await supabase.functions.invoke('uazapi-manager', {
+          body: {
+            action: 'get-qrcode',
+            instanceId: data.instance.id
+          }
+        });
+
+        if (qrError) {
+          console.error('❌ [AddInstanceDialog] QR Code function error:', qrError);
+          toast.info("Aguarde alguns segundos e atualize a página para ver o QR Code.");
+          handleClose();
+          return;
+        }
+
+        console.log('📥 [AddInstanceDialog] QR Data received:', qrData);
+
+        if (qrData?.qrcode || qrData?.base64 || qrData?.data?.qrcode) {
+          setQrCodeData(qrData.qrcode || qrData.base64 || qrData.data?.qrcode);
+          setShowQrCode(true);
+        } else {
+          console.warn('⚠️ [AddInstanceDialog] No QR code in data:', qrData);
+          toast.info("Aguarde alguns segundos e atualize a página para ver o QR Code.");
+          handleClose();
+        }
       } else {
-        setShowWebhookInstructions(true);
+        // Regular Flow (Admin/Pro)
+        await createInstance.mutateAsync({
+          name: values.name,
+          instance_name: values.instance_name || values.name,
+          provider_type: values.provider_type,
+          api_url: values.api_url || "",
+          api_key: values.api_key || "",
+          instance_id_external: values.instance_id_external || null,
+        } as any);
+
+        toast.success("Instância criada com sucesso!");
+        handleClose();
       }
-      form.reset();
-      setConnectionTested(false);
-    } catch (error) {
-      toast.error("Erro ao criar instância");
+    } catch (error: any) {
+      console.error('Error creating instance:', error);
+      const msg = typeof error === 'string' ? error : (error?.message || "Erro ao criar instância");
+      toast.error(msg);
+    } finally {
+      setIsCreating(false);
     }
   };
 
   const handleClose = () => {
-    if (!showWebhookInstructions) {
-      form.reset();
-      setConnectionTested(false);
-    }
-    setShowWebhookInstructions(false);
-    setCreatedInstanceId(null);
+    form.reset();
+    setShowQrCode(false);
+    setQrCodeData(null);
     onOpenChange(false);
-  };
-
-  const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evolution-webhook`;
-
-  const copyWebhookUrl = () => {
-    navigator.clipboard.writeText(webhookUrl);
-    toast.success("URL copiada!");
   };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        {!showWebhookInstructions ? (
-          <>
-            <DialogHeader>
-              <DialogTitle>Nova Instância</DialogTitle>
-              <DialogDescription>
-                Adicione uma nova instância da Evolution API ou UzAPI
-              </DialogDescription>
-            </DialogHeader>
+      <DialogContent className="sm:max-w-[450px]">
+        {/* Stable container to prevent DOM reconciliation issues */}
+        <div className="stable-content-wrapper">
+          {/* Stable container with both views rendered but toggled via visibility */}
+          <div className="stable-content-wrapper">
+            <div key="form-view" className={showQrCode ? "hidden" : "block space-y-4"}>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                  Conectar Novo WhatsApp
+                </DialogTitle>
+                <DialogDescription>
+                  Dê um nome para sua conexão e clique em conectar para gerar o QR Code.
+                </DialogDescription>
+              </DialogHeader>
 
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="provider_type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center gap-1.5">
-                        <FormLabel>Tipo de Provedor</FormLabel>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent side="right" className="max-w-[250px]">
-                            <p>Selecione o provedor que você está utilizando.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o tipo" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="self_hosted">Evolution API Self-Hosted</SelectItem>
-                          <SelectItem value="cloud">Evolution API Cloud</SelectItem>
-                          <SelectItem value="uzapi">UzAPI (Gateway Oficial)</SelectItem>
-                          <SelectItem value="mock">
-                            <div className="flex items-center gap-2">
-                              🧪 Modo Mock (Teste sem API)
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center gap-1.5">
-                        <FormLabel>Nome</FormLabel>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent side="right" className="max-w-[250px]">
-                            <p>Nome para identificar a instância na plataforma (ex: 'WhatsApp Vendas', 'Suporte Técnico')</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <FormControl>
-                        <Input placeholder="Minha Instância" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="instance_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center gap-1.5">
-                        <FormLabel>Nome da Instância</FormLabel>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent side="right" className="max-w-[250px]">
-                            <p>{providerType === 'uzapi' ? 'Nome de identificação interno.' : 'Nome exato da instância configurada no Evolution API.'}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <FormControl>
-                        <Input placeholder="my-instance" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {(providerType === 'cloud' || providerType === 'uzapi') && (
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
                   <FormField
                     control={form.control}
-                    name="instance_id_external"
+                    name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex items-center gap-1.5">
-                          <FormLabel>{providerType === 'uzapi' ? 'Phone Number ID' : 'ID da Instância (UUID)'}</FormLabel>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent side="right" className="max-w-[250px]">
-                              <p>
-                                {providerType === 'uzapi'
-                                  ? 'ID do número de telefone (Phone Number ID) fornecido pela UzAPI.'
-                                  : 'ID único da instância no Evolution Cloud (UUID).'}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
+                        <FormLabel>Nome da Conexão</FormLabel>
                         <FormControl>
-                          <Input placeholder={providerType === 'uzapi' ? "942911219636873" : "ead6f2f2-7633-4e41-a08d-7272300a6ba1"} {...field} />
+                          <Input placeholder="Ex: Meu WhatsApp Vendas" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                )}
 
-                {providerType === 'uzapi' && (
-                  <FormField
-                    control={form.control}
-                    name="waba_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center gap-1.5">
-                          <FormLabel>WABA-ID</FormLabel>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent side="right" className="max-w-[250px]">
-                              <p>
-                                WhatsApp Business Account ID fornecido pela UzAPI (diferente do Phone Number ID).
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <FormControl>
-                          <Input placeholder="9359088363..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-
-                {providerType !== 'mock' && (
-                  <>
-                    <FormField
-                      control={form.control}
-                      name="api_url"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center gap-1.5">
-                            <FormLabel>
-                              {providerType === 'uzapi' ? 'Username UzAPI' : 'URL da API'}
-                            </FormLabel>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent side="right" className="max-w-[250px]">
-                                <p>
-                                  {providerType === 'cloud'
-                                    ? 'URL do Evolution Cloud (ex: https://api.evoapicloud.com)'
-                                    : providerType === 'uzapi'
-                                      ? 'Seu nome de usuário na plataforma UzAPI (apenas o username, sem URL)'
-                                      : 'URL de acesso ao seu Evolution API.'}
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                          <FormControl>
-                            <Input
-                              placeholder={
-                                providerType === 'cloud'
-                                  ? "https://api.evoapicloud.com"
-                                  : providerType === 'uzapi'
-                                    ? "cristiannoldin"
-                                    : "https://api.evolution.com"
-                              }
-                              {...field}
-                            />
-                          </FormControl>
-                          {providerType === 'uzapi' && field.value && (
-                            <p className="text-[0.8rem] text-muted-foreground mt-1">
-                              URL gerada: <code>https://api.uzapi.com.br/{field.value}</code>
-                            </p>
-                          )}
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="api_key"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center gap-1.5">
-                            <FormLabel>
-                              {providerType === 'cloud' ? 'Token da Instância' : 'API Key/Token'}
-                            </FormLabel>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent side="right" className="max-w-[250px]">
-                                <p>
-                                  {providerType === 'cloud'
-                                    ? 'Token de autenticação da instância.'
-                                    : providerType === 'uzapi'
-                                      ? 'Token de acesso (Bearer Token) da UzAPI.'
-                                      : 'Chave de autenticação da API.'}
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                          <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </>
-                )}
-
-                {providerType === 'mock' && (
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                      <strong>Modo Mock:</strong> Não precisa de URL ou API Key. A instância será criada conectada para testes.
-                      Use as DevTools em Configurações para gerar dados de teste.
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  {providerType !== 'mock' && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleTestConnection}
-                      disabled={isTestingConnection}
-                    >
-                      {isTestingConnection ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : connectionTested ? (
-                        <Check className="mr-2 h-4 w-4" />
-                      ) : null}
-                      Testar Conexão
-                    </Button>
-                  )}
-
-                  <Button
-                    type="submit"
-                    disabled={(providerType !== 'mock' && providerType !== 'uzapi' && !connectionTested) || createInstance.isPending}
-                    className="ml-auto"
-                  >
-                    {createInstance.isPending ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : null}
-                    {providerType === 'mock' ? 'Criar Mock' : 'Salvar'}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </>
-        ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Check className="h-5 w-5 text-green-500" />
-                Instância criada com sucesso!
-              </DialogTitle>
-              <DialogDescription>
-                Configure o webhook {providerType === 'uzapi' ? 'na UzAPI' : 'na Evolution API'}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4">
-              <Alert>
-                <LinkIcon className="h-4 w-4" />
-                <AlertDescription className="space-y-2 mt-2">
-                  <div>
-                    <strong>URL do Webhook:</strong>
-                    <div className="flex items-center gap-2 mt-1">
-                      <code className="flex-1 bg-muted p-2 rounded text-xs break-all">
-                        {webhookUrl}
-                      </code>
-                      <Button size="sm" variant="outline" onClick={copyWebhookUrl}>
-                        <Copy className="h-4 w-4" />
-                      </Button>
+                  {!showProMode ? (
+                    <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                        <Shield className="h-4 w-4" />
+                        Conexão Segura via UzAPI
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Utilizamos um gateway oficial para garantir a estabilidade do seu número.
+                        Basta clicar no botão abaixo e escanear o código que aparecerá na tela.
+                      </p>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-4 border-t pt-4">
+                      <FormField
+                        control={form.control}
+                        name="provider_type"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Provedor</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="uzapi">UzAPI (Recomendado)</SelectItem>
+                                <SelectItem value="self_hosted">Evolution API (Local)</SelectItem>
+                                <SelectItem value="cloud">Evolution API (Cloud)</SelectItem>
+                                <SelectItem value="mock">Modo Teste (Simulação)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="api_url"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>URL da API</FormLabel>
+                            <Input {...field} />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="api_key"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Token/API Key</FormLabel>
+                            <Input type="password" {...field} />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
 
-                  <div className="mt-4">
-                    <strong>Events:</strong>
-                    <ul className="list-disc list-inside text-sm mt-1 space-y-1">
-                      <li>MESSAGES_UPSERT</li>
-                      <li>MESSAGES_UPDATE</li>
-                      <li>CONNECTION_UPDATE</li>
-                    </ul>
-                  </div>
-                </AlertDescription>
-              </Alert>
+                  <div className="flex flex-col gap-3">
+                    <Button
+                      type="submit"
+                      className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
+                      disabled={isCreating}
+                    >
+                      {isCreating ? (
+                        <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
+                      ) : (
+                        <QrCode className="mr-2 h-5 w-5" />
+                      )}
+                      {isCreating ? "Criando Instância..." : "Gerar QR Code Agora"}
+                    </Button>
 
-              <Button onClick={handleClose} className="w-full">
-                Fechar
+                    {isAdmin && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-muted-foreground hover:text-primary"
+                        onClick={() => setShowProMode(!showProMode)}
+                      >
+                        {showProMode ? "Voltar ao Modo Simples" : "Modo Profissional (Evolution/Manual)"}
+                      </Button>
+                    )}
+                  </div>
+                </form>
+              </Form>
+            </div>
+
+            <div key="qr-view" className={!showQrCode ? "hidden" : "flex flex-col items-center py-6 space-y-6 text-center"}>
+              <DialogHeader>
+                <DialogTitle>Escaneie o QR Code</DialogTitle>
+                <DialogDescription>
+                  Abra o WhatsApp no seu celular &gt; Configurações &gt; Aparelhos Conectados &gt; Conectar um aparelho.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="relative p-4 bg-white rounded-2xl shadow-inner border-4 border-primary/10">
+                {qrCodeData ? (
+                  <img src={qrCodeData} alt="WhatsApp QR Code" className="w-64 h-64" />
+                ) : (
+                  <div className="w-64 h-64 flex items-center justify-center bg-muted animate-pulse rounded-lg">
+                    <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Badge variant="outline" className="animate-pulse px-3 py-1">
+                  Aguardando conexão...
+                </Badge>
+                <p className="text-xs text-muted-foreground max-w-[280px]">
+                  O sistema detectará automaticamente quando você conectar.
+                </p>
+              </div>
+
+              <Button onClick={handleClose} variant="outline" className="w-full">
+                Fechar e concluir depois
               </Button>
             </div>
-          </>
-        )}
+          </div>
+        </div>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 };

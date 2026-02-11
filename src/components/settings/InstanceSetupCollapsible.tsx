@@ -170,12 +170,21 @@ export const InstanceSetupCollapsible = ({
 }: InstanceSetupCollapsibleProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<number[]>(() => {
-    const saved = localStorage.getItem('whatsapp-onboarding-progress');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('whatsapp-onboarding-progress');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error('Error parsing onboarding progress:', e);
+      return [];
+    }
   });
   const [hasCelebrated, setHasCelebrated] = useState<boolean>(() => {
-    const saved = localStorage.getItem('whatsapp-onboarding-celebrated');
-    return saved ? JSON.parse(saved) : false;
+    try {
+      const saved = localStorage.getItem('whatsapp-onboarding-celebrated');
+      return saved ? JSON.parse(saved) : false;
+    } catch (e) {
+      return false;
+    }
   });
   const { toast } = useToast();
   const { instances, isLoading: isLoadingInstances } = useWhatsAppInstances();

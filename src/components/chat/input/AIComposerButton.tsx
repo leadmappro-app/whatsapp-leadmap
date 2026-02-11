@@ -1,19 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  Sparkles,
-  Maximize2,
-  RefreshCw,
-  User,
-  Smile,
-  Briefcase,
-  CheckCircle2,
-  Languages,
-  Loader2,
-  ChevronRight,
-  ChevronLeft
-} from 'lucide-react';
+import { Sparkles, Maximize2, RefreshCw, User, Smile, Briefcase, CheckCircle2, Languages, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useWhatsAppComposer, type ComposerAction } from '@/hooks/whatsapp/useWhatsAppComposer';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -86,7 +74,7 @@ export function AIComposerButton({ message, onComposed, disabled }: AIComposerBu
           className="h-9 w-9"
         >
           {isComposing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <RefreshCw className="h-4 w-4 animate-spin" />
           ) : (
             <Sparkles className="h-4 w-4" />
           )}
@@ -95,7 +83,7 @@ export function AIComposerButton({ message, onComposed, disabled }: AIComposerBu
       <PopoverContent className="w-64 p-2" align="start">
         {isComposing ? (
           <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <RefreshCw className="h-4 w-4 animate-spin" />
             Processando com IA...
           </div>
         ) : showTranslateSubmenu ? (

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Send, Loader2, FileText, Music, Video } from "lucide-react";
+import { X, Send, RefreshCw, FileText, Music, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { MediaSendParams } from "./MessageInputContainer";
 import { useToast } from "@/hooks/use-toast";
@@ -149,7 +149,7 @@ export const MediaPreview = ({ file, onSend, onClose }: MediaPreviewProps) => {
           >
             {isUploading ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                 Enviando...
               </>
             ) : (

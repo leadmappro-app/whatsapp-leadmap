@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Search, Plus, Settings, Loader2, BarChart3, ChevronRight, ChevronLeft, MessageSquare, Users } from "lucide-react";
+import { Search, Plus, Settings, RefreshCw, BarChart3, ChevronRight, ChevronLeft, MessageSquare, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -272,7 +272,7 @@ const ConversationsSidebar = ({ selectedId, onSelect, instanceId, isCollapsed, o
         {/* Indicadores de busca */}
         {isSearchingMessages && debouncedSearchQuery.trim().length >= 3 && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <RefreshCw className="h-3 w-3 animate-spin" />
             Buscando no histórico...
           </div>
         )}

@@ -7,7 +7,7 @@ import { ContactSentimentEvolution } from './ContactSentimentEvolution';
 import { ContactSummaries } from './ContactSummaries';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2 } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 interface ContactDetailsProps {
   contactId: string;
@@ -19,7 +19,7 @@ export function ContactDetails({ contactId }: ContactDetailsProps) {
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

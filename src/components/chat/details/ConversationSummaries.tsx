@@ -3,7 +3,7 @@ import { useConversationSummaries } from '@/hooks/whatsapp/useConversationSummar
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Brain, ChevronDown, ChevronUp, Sparkles, Loader2, Trash2, CheckCircle2 } from 'lucide-react';
+import { Brain, ChevronDown, ChevronUp, Sparkles, RefreshCw, Trash2, CheckCircle2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -70,7 +70,7 @@ export function ConversationSummaries({ conversationId }: ConversationSummariesP
         >
           {isGenerating ? (
             <>
-              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+              <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
               Gerando...
             </>
           ) : (

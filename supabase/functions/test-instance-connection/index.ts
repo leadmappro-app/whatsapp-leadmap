@@ -101,7 +101,18 @@ serve(async (req) => {
     let authHeaders: Record<string, string>;
     let fetchInit: RequestInit = { method: 'GET' };
 
+    // Global Configs from project_config if needed
+    let uzapiBaseUrl = Deno.env.get('UAZAPI_BASE_URL') || 'https://api.uzapi.com.br';
+    
     if (providerType === 'uzapi') {
+      const { data: dbConfig } = await supabaseAdmin
+        .from('project_config')
+        .select('key, value')
+        .eq('key', 'uazapi_base_url')
+        .maybeSingle();
+      
+      if (dbConfig?.value) uzapiBaseUrl = dbConfig.value;
+
       // UzAPI: api_url contains username, instance_id_external contains phone_number_id
       const username = secrets.api_url;
       const phoneNumberId = instanceIdExternal;
@@ -116,7 +127,7 @@ serve(async (req) => {
       // UzAPI Swagger does NOT expose a dedicated session/status route in many tenants.
       // The most reliable “is it connected?” check is calling a lightweight authenticated endpoint.
       // Use: POST /{username}/{version}/{phone_number_id}/chats with action=list and small pageSize.
-      testUrl = `https://api.uzapi.com.br/${username}/v1/${phoneNumberId}/chats`;
+      testUrl = `${uzapiBaseUrl}/${username}/v1/${phoneNumberId}/chats`;
       authHeaders = {
         'Authorization': `Bearer ${secrets.api_key}`,
         'Content-Type': 'application/json',
@@ -157,7 +168,7 @@ serve(async (req) => {
     if (!response.ok && providerType === 'uzapi' && response.status === 404) {
       const username = secrets.api_url;
       const phoneNumberId = instanceIdExternal;
-      const fallbackUrl = `https://api.uzapi.com.br/${username}/v1/${phoneNumberId}/session/status`;
+      const fallbackUrl = `${uzapiBaseUrl}/${username}/v1/${phoneNumberId}/session/status`;
       console.log('[test-instance-connection] UzAPI chats returned 404; trying session/status fallback:', fallbackUrl);
       response = await fetch(fallbackUrl, {
         method: 'GET',

@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Heart, Info, Sparkles, Loader2, RefreshCw } from 'lucide-react';
+import { Heart, Info, Sparkles, RefreshCw } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -127,7 +127,7 @@ export function ConversationSentiment({ conversationId }: ConversationSentimentP
           >
             {isAnalyzing ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                 Analisando...
               </>
             ) : (
@@ -200,7 +200,7 @@ export function ConversationSentiment({ conversationId }: ConversationSentimentP
         >
           {isAnalyzing ? (
             <>
-              <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+              <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
               Analisando...
             </>
           ) : (

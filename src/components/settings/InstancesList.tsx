@@ -1,6 +1,6 @@
 import { useWhatsAppInstances } from "@/hooks/whatsapp";
 import { InstanceCard } from "./InstanceCard";
-import { Loader2 } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 export const InstancesList = () => {
   const { instances, isLoading } = useWhatsAppInstances();
@@ -8,7 +8,7 @@ export const InstancesList = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }

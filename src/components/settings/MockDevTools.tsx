@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Database, MessageSquare, Trash2, FlaskConical, CheckCircle2 } from "lucide-react";
+import { RefreshCw, Database, MessageSquare, Trash2, FlaskConical, CheckCircle2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface CoverageReport {
@@ -158,7 +158,7 @@ export const MockDevTools = () => {
               onClick={() => handleSeedData(false)}
               disabled={isSeeding}
             >
-              {isSeeding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Database className="h-4 w-4 mr-2" />}
+              {isSeeding ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Database className="h-4 w-4 mr-2" />}
               Gerar Dados
             </Button>
             <Button 
@@ -166,7 +166,7 @@ export const MockDevTools = () => {
               onClick={() => handleSeedData(true)}
               disabled={isSeeding}
             >
-              {isSeeding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              {isSeeding ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
               Resetar e Gerar
             </Button>
           </div>
@@ -205,7 +205,7 @@ export const MockDevTools = () => {
                 onClick={handleSendMockMessage}
                 disabled={isSendingMock || !selectedConversation || !mockMessage.trim()}
               >
-                {isSendingMock ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+                {isSendingMock ? <RefreshCw className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
               </Button>
             </div>
           </div>
