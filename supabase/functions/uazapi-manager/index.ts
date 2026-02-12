@@ -24,7 +24,7 @@ serve(async (req: Request) => {
     if (authError || !user) throw new Error('Unauthorized');
 
     const body = await req.json();
-    const { action, name, instance_name, phoneNumber, instanceId } = body;
+    let { action, name, instance_name, phoneNumber, instanceId, adminToken: providedToken, username: providedUsername, baseUrl: providedBaseUrl } = body;
     let { webhookUrl } = body;
 
     // Default webhook if missing
@@ -33,9 +33,9 @@ serve(async (req: Request) => {
     }
 
     // Global Configs from Secrets or project_config table
-    let adminToken = Deno.env.get('UAZAPI_ADMIN_TOKEN');
-    let baseUrl = Deno.env.get('UAZAPI_BASE_URL') || 'https://api.uazapi.com';
-    let username = Deno.env.get('UAZAPI_USERNAME');
+    let adminToken = providedToken || Deno.env.get('UAZAPI_ADMIN_TOKEN');
+    let baseUrl = providedBaseUrl || Deno.env.get('UAZAPI_BASE_URL') || 'https://api.uazapi.com';
+    let username = providedUsername || Deno.env.get('UAZAPI_USERNAME');
 
     // If missing in env, try database
     if (!adminToken || !username) {
