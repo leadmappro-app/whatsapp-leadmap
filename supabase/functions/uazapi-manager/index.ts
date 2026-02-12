@@ -250,8 +250,9 @@ serve(async (req: Request) => {
     throw new Error('Invalid action');
 
   } catch (error: any) {
-    console.error('[uazapi-manager] Catch Error:', error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMsg = error.message || String(error);
+    console.error('[uazapi-manager] Catch Error:', errorMsg);
+    return new Response(JSON.stringify({ error: errorMsg }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
