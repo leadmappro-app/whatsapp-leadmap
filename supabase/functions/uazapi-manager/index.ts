@@ -204,19 +204,20 @@ serve(async (req: Request) => {
     }
 
     if (action === 'test-config') {
-      console.log(`[uazapi-manager] Testing global config (Admin Token only test)`);
+      console.log(`[uazapi-manager] Testing global config. Username: ${username}, BaseURL: ${baseUrl}`);
       
-      // Based on common UazAPI patterns, we try a root admin endpoint first
-      // Some versions use /v1/instance/list or just /v1/instance
       const testEndpoints = [
         `${baseUrl}/v1/instance`,
-        `${baseUrl}/${username}/v1/instance`
+        `${baseUrl}/${username}/v1/instance`,
+        `https://api.uazapi.com/${username}/v1/instance`
       ];
 
-      let lastError = null;
+      const logs: string[] = [];
+      let lastError: string = "No endpoints tested";
+
       for (const apiUrl of testEndpoints) {
         try {
-          console.log(`[uazapi-manager] Testing URL: ${apiUrl}`);
+          logs.push(`Testing: ${apiUrl}`);
           const response = await fetch(apiUrl, {
             headers: {
               'admintoken': adminToken,
@@ -231,20 +232,30 @@ serve(async (req: Request) => {
             return new Response(JSON.stringify({ 
               success: true, 
               message: `Conexão bem-sucedida! Encontradas ${count} instâncias. URL funcional: ${apiUrl}`,
-              data 
+              data,
+              logs
             }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });
           } else {
-            const text = await response.text();
-            lastError = `HTTP ${response.status}: ${text}`;
+            const text = await response.text().catch(() => "Could not read response text");
+            lastError = `HTTP ${response.status} from ${apiUrl}: ${text}`;
+            logs.push(`Fail: ${lastError}`);
           }
-        } catch (e) {
-          lastError = e.message;
+        } catch (e: any) {
+          const msg = e.message || String(e);
+          lastError = `Fetch error for ${apiUrl}: ${msg}`;
+          logs.push(`Error: ${lastError}`);
         }
       }
 
-      throw new Error(`Falha em todos os endpoints de teste. Último erro: ${lastError}`);
+      return new Response(JSON.stringify({ 
+        error: `Falha em todos os endpoints de teste.`,
+        details: lastError,
+        logs: logs
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     throw new Error('Invalid action');
