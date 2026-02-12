@@ -204,20 +204,16 @@ serve(async (req: Request) => {
     }
 
     if (action === 'test-config') {
-      console.log(`[uazapi-manager] Testing global config. Username: ${username}, BaseURL: ${baseUrl}`);
-      
       const testEndpoints = [
         `${baseUrl}/v1/instance`,
         `${baseUrl}/${username}/v1/instance`,
         `https://api.uazapi.com/${username}/v1/instance`
-      ];
+      ].filter(url => url.startsWith('http'));
 
-      const logs: string[] = [];
-      let lastError: string = "No endpoints tested";
+      let lastErrorDetail: any = "Nenhum endpoint respondeu";
 
       for (const apiUrl of testEndpoints) {
         try {
-          logs.push(`Testing: ${apiUrl}`);
           const response = await fetch(apiUrl, {
             headers: {
               'admintoken': adminToken,
@@ -227,32 +223,27 @@ serve(async (req: Request) => {
 
           if (response.ok) {
             const data = await response.json();
-            const count = Array.isArray(data) ? data.length : (data.data?.length || (Array.isArray(data.instances) ? data.instances.length : 0));
+            const count = Array.isArray(data) ? data.length : (data.data?.length || 0);
             
             return new Response(JSON.stringify({ 
               success: true, 
-              message: `Conexão bem-sucedida! Encontradas ${count} instâncias. URL funcional: ${apiUrl}`,
-              data,
-              logs
+              message: `Conexão bem-sucedida! URL funcional: ${apiUrl}. Instâncias: ${count}`,
+              data 
             }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });
           } else {
-            const text = await response.text().catch(() => "Could not read response text");
-            lastError = `HTTP ${response.status} from ${apiUrl}: ${text}`;
-            logs.push(`Fail: ${lastError}`);
+            const text = await response.text().catch(() => "Erro desconhecido");
+            lastErrorDetail = { url: apiUrl, status: response.status, body: text };
           }
         } catch (e: any) {
-          const msg = e.message || String(e);
-          lastError = `Fetch error for ${apiUrl}: ${msg}`;
-          logs.push(`Error: ${lastError}`);
+          lastErrorDetail = { url: apiUrl, error: e.message };
         }
       }
 
       return new Response(JSON.stringify({ 
-        error: `Falha em todos os endpoints de teste.`,
-        details: lastError,
-        logs: logs
+        error: `Falha na conexão com a UazAPI.`,
+        details: lastErrorDetail
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
