@@ -210,9 +210,9 @@ serve(async (req: Request) => {
         `${baseUrl}/${username}/v1/instance`,
         `https://api.uazapi.com/${username}/v1/instance`,
         `https://api.uazapi.com/v1/instance`
-      ].filter(url => url.startsWith('http'));
+      ].filter(url => url && url.startsWith('http'));
 
-      let lastErrorDetail: any = "Nenhum endpoint respondeu";
+      let lastErrorDetail = "Nenhum endpoint respondeu";
 
       for (const apiUrl of testEndpoints) {
         try {
@@ -223,32 +223,26 @@ serve(async (req: Request) => {
             }
           });
 
+          const text = await response.text().catch(() => "Erro ao ler corpo");
+          
           if (response.ok) {
-            const data = await response.json();
-            // Try to find count in various UazAPI response formats
-            const count = Array.isArray(data) ? data.length : 
-                          (data.data?.length || 
-                           data.count || 
-                           (data.instances ? data.instances.length : 0));
-            
             return new Response(JSON.stringify({ 
               success: true, 
-              message: `Conexão bem-sucedida! URL funcional: ${apiUrl}. Instâncias: ${count}`,
-              data 
+              message: `Sucesso! URL: ${apiUrl}`,
+              raw: text 
             }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });
           } else {
-            const text = await response.text().catch(() => "Erro desconhecido");
-            lastErrorDetail = { url: apiUrl, status: response.status, body: text };
+            lastErrorDetail = `URL: ${apiUrl} | Status: ${response.status} | Resposta: ${text}`;
           }
         } catch (e: any) {
-          lastErrorDetail = { url: apiUrl, error: e.message };
+          lastErrorDetail = `Erro na URL ${apiUrl}: ${e.message}`;
         }
       }
 
       return new Response(JSON.stringify({ 
-        error: `Falha na conexão com a UazAPI. Verifique se o Admin Token e a URL estão corretos.`,
+        error: "Falha Geral no Teste",
         details: lastErrorDetail
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
