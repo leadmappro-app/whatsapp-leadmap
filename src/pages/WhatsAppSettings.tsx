@@ -3,7 +3,17 @@ import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { InstancesList, AddInstanceDialog, TeamMembersList, AssignmentRulesManager, InstanceSetupCollapsible, SetupGuideCollapsible, SecuritySettings, MockDevTools } from "@/components/settings";
+import { 
+  InstancesList, 
+  AddInstanceDialog, 
+  TeamMembersList, 
+  AssignmentRulesManager, 
+  InstanceSetupCollapsible, 
+  SetupGuideCollapsible, 
+  SecuritySettings, 
+  MockDevTools,
+  UazAPIConfig
+} from "@/components/settings";
 import { MacrosManager } from "@/components/macros";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -49,6 +59,7 @@ const WhatsAppSettings = () => {
             <TabsTrigger value="assignment">Atribuição</TabsTrigger>
             {isAdmin && <TabsTrigger value="team">Equipe</TabsTrigger>}
             {isAdmin && <TabsTrigger value="security">Segurança</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="uazapi">UazAPI Global</TabsTrigger>}
             {isAdmin && <TabsTrigger value="devtools">Dev Tools</TabsTrigger>}
           </TabsList>
 
@@ -87,6 +98,12 @@ const WhatsAppSettings = () => {
           {isAdmin && (
             <TabsContent value="security" className="mt-6">
               <SecuritySettings />
+            </TabsContent>
+          )}
+
+          {isAdmin && (
+            <TabsContent value="uazapi" className="mt-6">
+              <UazAPIConfig />
             </TabsContent>
           )}
 

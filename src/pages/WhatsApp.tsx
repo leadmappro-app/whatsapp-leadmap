@@ -8,11 +8,12 @@ import { useInstanceStatusMonitor } from "@/hooks/useInstanceStatusMonitor";
 import { DisconnectedInstancesBanner } from "@/components/notifications/DisconnectedInstancesBanner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, ArrowLeft, FlaskConical, RefreshCw, MessageSquare } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Settings, ArrowLeft, FlaskConical, RefreshCw, MessageSquare, LogOut } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 
 const WhatsApp = () => {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
@@ -24,6 +25,8 @@ const WhatsApp = () => {
   const { disconnectedInstances } = useInstanceStatusMonitor();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
 
   // Show all conversations from all instances by default
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | undefined>(undefined);
@@ -194,6 +197,19 @@ const WhatsApp = () => {
                   Configurar Instância Real
                 </Button>
               </Link>
+
+              <Button 
+                variant="ghost" 
+                className="w-full text-muted-foreground mt-4" 
+                size="sm"
+                onClick={async () => {
+                  await signOut();
+                  navigate("/auth");
+                }}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair da Conta
+              </Button>
             </CardContent>
           </Card>
         </div>

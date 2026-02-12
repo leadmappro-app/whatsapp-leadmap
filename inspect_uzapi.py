@@ -2,22 +2,21 @@ import json
 import urllib.request
 
 try:
-    url = "https://api.uzapi.com.br/docs/swagger.json"
-    with urllib.request.urlopen(url) as response:
-        data = json.loads(response.read().decode())
+    with open("/root/.openclaw/workspace/whatsappweb-github/uzapi-swagger.json", "r") as f:
+        data = json.load(f)
     
     with open("uzapi_details.txt", "w") as f:
-        path = "/{username}/{version}/{phone_number_id}/messages"
+        path = "/{username}/{version}/instance/add"
         if path in data['paths']:
             post_method = data['paths'][path].get('post')
             if post_method:
                 f.write("Parameters for POST " + path + ":\n")
-                for param in post_method.get('parameters', []):
-                    f.write(f"- Name: {param['name']}, In: {param['in']}, Required: {param.get('required', False)}\n")
+                f.write("\nResponses:\n")
+                f.write(json.dumps(post_method['responses'], indent=2))
                 
-                f.write("\nRequest Body:\n")
-                if 'requestBody' in post_method:
-                     f.write(json.dumps(post_method['requestBody'], indent=2))
+                f.write("\nSchemas:\n")
+                schemas = data.get('components', {}).get('schemas', {})
+                f.write(json.dumps(schemas, indent=2))
         else:
             f.write(f"Path {path} not found in Swagger.\n")
             f.write("Available paths:\n")

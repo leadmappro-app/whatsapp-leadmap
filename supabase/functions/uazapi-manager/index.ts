@@ -33,7 +33,7 @@ serve(async (req: Request) => {
 
     // Global Configs from Secrets or project_config table
     let adminToken = Deno.env.get('UAZAPI_ADMIN_TOKEN');
-    let baseUrl = Deno.env.get('UAZAPI_BASE_URL') || 'https://api.uzapi.com.br';
+    let baseUrl = Deno.env.get('UAZAPI_BASE_URL') || 'https://api.uazapi.com';
     let username = Deno.env.get('UAZAPI_USERNAME');
 
     // If missing in env, try database
@@ -62,8 +62,14 @@ serve(async (req: Request) => {
     if (action === 'create-instance') {
       console.log(`[uazapi-manager] Creating instance: ${instance_name} for user: ${user.id}`);
 
+      // Smart URL building: don't double the username if it's already in the baseUrl subdomain
+      const finalBaseUrl = baseUrl.includes(username) ? baseUrl : `${baseUrl}/${username}`;
+      const apiUrl = `${finalBaseUrl}/v1/instance/add`;
+      
+      console.log(`[uazapi-manager] UazAPI Add Instance URL: ${apiUrl}`);
+
       // 1. Create Deployment in UazAPI
-      const createResponse = await fetch(`${baseUrl}/${username}/v1/instance/add`, {
+      const createResponse = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'admintoken': adminToken,
@@ -99,7 +105,7 @@ serve(async (req: Request) => {
           name: name || instance_name,
           instance_name: instance_name,
           instance_id_external: phoneNumberId,
-          provider_type: 'uzapi',
+          provider_type: 'uazapi',
           status: 'connecting',
           metadata: { 
             waba_id: createData.wabaId || createData.data?.wabaId || null,
@@ -146,11 +152,13 @@ serve(async (req: Request) => {
       const identifier = inst.instance_id_external || inst.instance_name;
       console.log(`[uazapi-manager] Fetching QR for: ${identifier} (Tenant: ${secrets.api_url})`);
 
+      const finalBaseUrl = baseUrl.includes(secrets.api_url) ? baseUrl : `${baseUrl}/${secrets.api_url}`;
+
       // 1. Get deployment ID if not already saved (sometimes uazapi needs it)
       // 2. Fetch QR data
       const endpoints = [
-        `${baseUrl}/${secrets.api_url}/v1/${identifier}/instance`,
-        `${baseUrl}/${secrets.api_url}/v1/${identifier}/status`,
+        `${finalBaseUrl}/v1/${identifier}/instance`,
+        `${finalBaseUrl}/v1/${identifier}/status`,
         `${baseUrl}/api/v1/instance/${identifier}/qrcode`
       ];
 
@@ -189,7 +197,38 @@ serve(async (req: Request) => {
         normalizedQr = `data:image/png;base64,${normalizedQr}`;
       }
 
-      return new Response(JSON.stringify({ ...qrData, qrcode: normalizedQr }), {
+      return new Response(JSON.stringify({ success: true, qrcode: normalizedQr }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (action === 'test-config') {
+      console.log(`[uazapi-manager] Testing global config for tenant: ${username}`);
+      
+      const finalBaseUrl = baseUrl.includes(username) ? baseUrl : `${baseUrl}/${username}`;
+      const apiUrl = `${finalBaseUrl}/v1/instance`;
+
+      // Try to list deployments to see if token is valid
+      const response = await fetch(apiUrl, {
+        headers: {
+          'admintoken': adminToken,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || errData.error || `HTTP ${response.status} from UazAPI`);
+      }
+
+      const data = await response.json();
+      const count = Array.isArray(data) ? data.length : (data.data?.length || 0);
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: `Conexão bem-sucedida! Encontradas ${count} instâncias no seu tenant.`,
+        data 
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }

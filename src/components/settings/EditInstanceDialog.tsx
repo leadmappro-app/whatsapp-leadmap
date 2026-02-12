@@ -40,7 +40,7 @@ const formSchema = z.object({
   instance_id_external: z.string().optional(),
   api_url: z.string().url("URL inválida").or(z.literal("")),
   api_key: z.string().min(1, "Token/API Key obrigatório").or(z.literal("")),
-  provider_type: z.enum(["self_hosted", "cloud", "mock", "uzapi"]),
+  provider_type: z.enum(["self_hosted", "cloud", "mock", "uazapi"]),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -130,7 +130,7 @@ export const EditInstanceDialog = ({
                     <SelectContent>
                       <SelectItem value="self_hosted">Evolution API Self-Hosted</SelectItem>
                       <SelectItem value="cloud">Evolution API Cloud</SelectItem>
-                      <SelectItem value="uzapi">UzAPI (Gerenciado)</SelectItem>
+                      <SelectItem value="uazapi">UazAPI (Gerenciado)</SelectItem>
                       <SelectItem value="mock">Modo Teste (Simulação)</SelectItem>
                     </SelectContent>
                   </Select>

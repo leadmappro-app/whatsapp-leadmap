@@ -18,8 +18,8 @@ interface SendMessageRequest {
 
 // Helper function to get Evolution API auth headers based on provider type
 function getEvolutionAuthHeaders(apiKey: string, providerType: string): Record<string, string> {
-  // UzAPI uses Bearer token
-  if (providerType === 'uzapi') {
+  // UazAPI uses Bearer token
+  if (providerType === 'uazapi') {
     return { 'Authorization': `Bearer ${apiKey}` };
   }
   // Evolution Cloud confirmou: ambos usam header 'apikey'
@@ -200,8 +200,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // For Cloud/UzAPI, use instance_id_external instead of instance_name
-    const instanceIdentifier = (providerType === 'cloud' || providerType === 'uzapi') && instanceIdExternal
+    // For Cloud/UazAPI, use instance_id_external instead of instance_name
+    const instanceIdentifier = (providerType === 'cloud' || providerType === 'uazapi') && instanceIdExternal
       ? instanceIdExternal
       : instanceName;
 
@@ -213,8 +213,8 @@ Deno.serve(async (req) => {
     let endpoint = '';
     let requestBody: any = {};
 
-    if (providerType === 'uzapi') {
-      const result = buildUzApiRequest(
+    if (providerType === 'uazapi') {
+      const result = buildUazApiRequest(
         secrets.api_url,
         instanceIdentifier,
         destinationNumber,
@@ -264,8 +264,8 @@ Deno.serve(async (req) => {
     // Extract message ID
     let messageId = `msg_${Date.now()}`;
 
-    // UzAPI/Cloud API usually retuns { messages: [{ id: '...' }] }
-    if (providerType === 'uzapi' && apiData.messages && apiData.messages[0]?.id) {
+    // UazAPI/Cloud API usually retuns { messages: [{ id: '...' }] }
+    if (providerType === 'uazapi' && apiData.messages && apiData.messages[0]?.id) {
       messageId = apiData.messages[0].id;
     } else if (apiData.key?.id) {
       // Evolution API
@@ -274,7 +274,7 @@ Deno.serve(async (req) => {
 
     // Extract media URL from response if available (mainly handled by Evolution)
     let extractedMediaUrl: string | null = null;
-    if (providerType !== 'uzapi') {
+    if (providerType !== 'uazapi') {
       if (body.messageType === 'audio' && apiData.message?.audioMessage?.url) {
         extractedMediaUrl = apiData.message.audioMessage.url;
       } else if (body.messageType === 'image' && apiData.message?.imageMessage?.url) {
@@ -444,18 +444,21 @@ function buildEvolutionRequest(
   }
 }
 
-function buildUzApiRequest(
+function buildUazApiRequest(
   apiUrl: string,
   phoneNumberId: string,
   number: string,
   body: SendMessageRequest
 ): { endpoint: string; requestBody: any } {
-  // apiUrl contains only the username (not a full URL)
-  // Build full URL: https://api.uzapi.com.br/{username}/v1/{phone_number_id}/messages
+  // apiUrl contains the username/tenant
   const username = apiUrl.trim();
-  const endpoint = `https://api.uzapi.com.br/${username}/v1/${phoneNumberId}/messages`;
+  
+  // Smart URL building
+  const baseUrl = "https://api.uazapi.com";
+  const finalBaseUrl = baseUrl.includes(username) ? baseUrl : `${baseUrl}/${username}`;
+  const endpoint = `${finalBaseUrl}/v1/${phoneNumberId}/messages`;
 
-  // Use structure from UzAPI Swagger
+  // Use structure from UazAPI Swagger
   // NO messaging_product field
   const requestBody: any = {
     to: number,
@@ -501,7 +504,7 @@ function buildUzApiRequest(
       break;
 
     default:
-      throw new Error(`Unsupported message type for UzAPI: ${body.messageType}`);
+      throw new Error(`Unsupported message type for UazAPI: ${body.messageType}`);
   }
 
   return { endpoint, requestBody };

@@ -1007,17 +1007,17 @@ Deno.serve(async (req) => {
     let payload: EvolutionWebhookPayload;
 
     // ========== UZAPI DETECTION & NORMALIZATION ==========
-    // Detect if this is a UzAPI webhook (has phone_number_id instead of instance)
+    // Detect if this is a UazAPI webhook (has phone_number_id instead of instance)
     const isUzApi = !!(body.phone_number_id && body.type && !body.instance);
 
     if (isUzApi) {
-      console.log('[evolution-webhook] UzAPI payload detected:', body.type);
+      console.log('[evolution-webhook] UazAPI payload detected:', body.type);
 
       // Only process incoming messages, ignore status updates for now
       if (body.type !== 'message') {
-        console.log('[evolution-webhook] Ignoring UzAPI non-message event:', body.type);
+        console.log('[evolution-webhook] Ignoring UazAPI non-message event:', body.type);
         return new Response(
-          JSON.stringify({ success: true, event: 'uzapi_ignored' }),
+          JSON.stringify({ success: true, event: 'uazapi_ignored' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         );
       }
@@ -1027,20 +1027,20 @@ Deno.serve(async (req) => {
         .from('whatsapp_instances')
         .select('id, instance_name, provider_type')
         .eq('instance_id_external', body.phone_number_id)
-        .eq('provider_type', 'uzapi')
+        .eq('provider_type', 'uazapi')
         .maybeSingle();
 
       if (uzInstanceError || !uzInstance) {
-        console.error('[evolution-webhook] UzAPI instance not found for phone_number_id:', body.phone_number_id, uzInstanceError);
+        console.error('[evolution-webhook] UazAPI instance not found for phone_number_id:', body.phone_number_id, uzInstanceError);
         return new Response(
           JSON.stringify({ success: false, error: 'Instance not found' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         );
       }
 
-      console.log('[evolution-webhook] UzAPI instance found:', uzInstance.instance_name);
+      console.log('[evolution-webhook] UazAPI instance found:', uzInstance.instance_name);
 
-      // Normalize UzAPI payload to Evolution format
+      // Normalize UazAPI payload to Evolution format
       payload = normalizeUzApiPayload(body, uzInstance.instance_name);
       console.log('[evolution-webhook] Normalized to Evolution format');
     } else {
@@ -1089,10 +1089,10 @@ Deno.serve(async (req) => {
 // ========== UZAPI NORMALIZATION FUNCTION ==========
 
 /**
- * Normalizes a UzAPI webhook payload to Evolution API format
+ * Normalizes a UazAPI webhook payload to Evolution API format
  */
 function normalizeUzApiPayload(uzPayload: any, instanceName: string): EvolutionWebhookPayload {
-  // Convert UzAPI phone format to Evolution format
+  // Convert UazAPI phone format to Evolution format
   const remoteJid = `${uzPayload.from}@s.whatsapp.net`;
   const messageTimestamp = Math.floor(new Date(uzPayload.timestamp).getTime() / 1000);
 
@@ -1141,8 +1141,8 @@ function normalizeUzApiPayload(uzPayload: any, instanceName: string): EvolutionW
     data: {
       key: {
         remoteJid,
-        id: uzPayload.id || `uzapi_${Date.now()}`,
-        fromMe: false, // UzAPI webhooks are always from customer
+        id: uzPayload.id || `uazapi_${Date.now()}`,
+        fromMe: false, // UazAPI webhooks are always from customer
       },
       pushName: uzPayload.from, // Will be updated by findOrCreateContact
       message,

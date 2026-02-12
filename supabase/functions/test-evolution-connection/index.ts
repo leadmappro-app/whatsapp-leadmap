@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 function getEvolutionAuthHeaders(apiKey: string, providerType: string): Record<string, string> {
-  if (providerType === 'uzapi') {
+  if (providerType === 'uazapi') {
     return {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json'
@@ -44,10 +44,10 @@ serve(async (req) => {
     }
 
     // UZAPI TEST LOGIC
-    if (provider_type === 'uzapi') {
+    if (provider_type === 'uazapi') {
       if (!instance_id_external) {
         return new Response(
-          JSON.stringify({ error: 'Phone Number ID (instance_id_external) is required for UzAPI' }),
+          JSON.stringify({ error: 'Phone Number ID (instance_id_external) is required for UazAPI' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -57,11 +57,11 @@ serve(async (req) => {
       // So we will just validate the inputs and return success to allow saving.
       // Optionally we could try to call `POST /{phoneNumberId}/status` but that might need params.
 
-      console.log('✅ UzAPI validation passed (optimistic)');
+      console.log('✅ UazAPI validation passed (optimistic)');
       return new Response(
         JSON.stringify({
           success: true,
-          data: { message: "UzAPI configured successfully (optimistic check)" },
+          data: { message: "UazAPI configured successfully (optimistic check)" },
           connectionState: 'connected'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

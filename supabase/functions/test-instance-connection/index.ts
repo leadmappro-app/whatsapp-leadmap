@@ -102,32 +102,32 @@ serve(async (req) => {
     let fetchInit: RequestInit = { method: 'GET' };
 
     // Global Configs from project_config if needed
-    let uzapiBaseUrl = Deno.env.get('UAZAPI_BASE_URL') || 'https://api.uzapi.com.br';
+    let uazapiBaseUrl = Deno.env.get('UAZAPI_BASE_URL') || 'https://api.uazapi.com';
     
-    if (providerType === 'uzapi') {
+    if (providerType === 'uazapi') {
       const { data: dbConfig } = await supabaseAdmin
         .from('project_config')
         .select('key, value')
         .eq('key', 'uazapi_base_url')
         .maybeSingle();
       
-      if (dbConfig?.value) uzapiBaseUrl = dbConfig.value;
+      if (dbConfig?.value) uazapiBaseUrl = dbConfig.value;
 
-      // UzAPI: api_url contains username, instance_id_external contains phone_number_id
+      // UazAPI: api_url contains username, instance_id_external contains phone_number_id
       const username = secrets.api_url;
       const phoneNumberId = instanceIdExternal;
       
       if (!phoneNumberId) {
-        return new Response(JSON.stringify({ error: 'Phone Number ID é obrigatório para UzAPI' }), {
+        return new Response(JSON.stringify({ error: 'Phone Number ID é obrigatório para UazAPI' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
       
-      // UzAPI Swagger does NOT expose a dedicated session/status route in many tenants.
+      // UazAPI Swagger does NOT expose a dedicated session/status route in many tenants.
       // The most reliable “is it connected?” check is calling a lightweight authenticated endpoint.
       // Use: POST /{username}/{version}/{phone_number_id}/chats with action=list and small pageSize.
-      testUrl = `${uzapiBaseUrl}/${username}/v1/${phoneNumberId}/chats`;
+      testUrl = `${uazapiBaseUrl}/${username}/v1/${phoneNumberId}/chats`;
       authHeaders = {
         'Authorization': `Bearer ${secrets.api_key}`,
         'Content-Type': 'application/json',
@@ -144,7 +144,7 @@ serve(async (req) => {
           },
         }),
       };
-      console.log('[test-instance-connection] Testing UzAPI connection (chats list):', testUrl);
+      console.log('[test-instance-connection] Testing UazAPI connection (chats list):', testUrl);
     } else {
       // Evolution API (self_hosted or cloud)
       const instanceIdentifier = providerType === 'cloud' && instanceIdExternal
@@ -164,12 +164,12 @@ serve(async (req) => {
 
     let response = await fetch(testUrl, requestInit);
 
-    // Fallbacks for UzAPI (some tenants expose /session/status instead)
-    if (!response.ok && providerType === 'uzapi' && response.status === 404) {
+    // Fallbacks for UazAPI (some tenants expose /session/status instead)
+    if (!response.ok && providerType === 'uazapi' && response.status === 404) {
       const username = secrets.api_url;
       const phoneNumberId = instanceIdExternal;
-      const fallbackUrl = `${uzapiBaseUrl}/${username}/v1/${phoneNumberId}/session/status`;
-      console.log('[test-instance-connection] UzAPI chats returned 404; trying session/status fallback:', fallbackUrl);
+      const fallbackUrl = `${uazapiBaseUrl}/${username}/v1/${phoneNumberId}/session/status`;
+      console.log('[test-instance-connection] UazAPI chats returned 404; trying session/status fallback:', fallbackUrl);
       response = await fetch(fallbackUrl, {
         method: 'GET',
         headers: authHeaders,
@@ -202,20 +202,20 @@ serve(async (req) => {
 
     // Map upstream response to our status
     // - Evolution Cloud: empty 200 body => connected
-    // - UzAPI: we consider 2xx as at least reachable; if response includes state hints, use them
+    // - UazAPI: we consider 2xx as at least reachable; if response includes state hints, use them
     let newStatus = 'disconnected';
 
     const normalizedState = String(
       data?.state ?? data?.instance?.state ?? data?.status ?? data?.connectionState ?? ''
     ).toLowerCase();
 
-    if (providerType === 'uzapi') {
+    if (providerType === 'uazapi') {
       if (normalizedState.includes('connect') || normalizedState.includes('open') || data?.connected === true) {
         newStatus = 'connected';
       } else if (normalizedState.includes('connect')) {
         newStatus = 'connecting';
       } else {
-        // If UzAPI answered 2xx, treat as reachable; keep disconnected only when explicit
+        // If UazAPI answered 2xx, treat as reachable; keep disconnected only when explicit
         newStatus = response.ok ? 'connected' : 'disconnected';
       }
     } else {
