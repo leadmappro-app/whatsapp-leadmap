@@ -203,46 +203,47 @@ serve(async (req: Request) => {
     }
 
     if (action === 'test-config') {
-      console.log(`[uazapi-manager] Testing global config for tenant: ${username}`);
+      console.log(`[uazapi-manager] Testing global config (Admin Token only test)`);
       
-      const finalBaseUrl = baseUrl.includes(username) ? baseUrl : `${baseUrl}/${username}`;
-      const apiUrl = `${finalBaseUrl}/v1/instance`;
+      // Based on common UazAPI patterns, we try a root admin endpoint first
+      // Some versions use /v1/instance/list or just /v1/instance
+      const testEndpoints = [
+        `${baseUrl}/v1/instance`,
+        `${baseUrl}/${username}/v1/instance`
+      ];
 
-      console.log(`[uazapi-manager] Testing URL: ${apiUrl}`);
+      let lastError = null;
+      for (const apiUrl of testEndpoints) {
+        try {
+          console.log(`[uazapi-manager] Testing URL: ${apiUrl}`);
+          const response = await fetch(apiUrl, {
+            headers: {
+              'admintoken': adminToken,
+              'Content-Type': 'application/json'
+            }
+          });
 
-      try {
-        const response = await fetch(apiUrl, {
-          headers: {
-            'admintoken': adminToken,
-            'Content-Type': 'application/json'
+          if (response.ok) {
+            const data = await response.json();
+            const count = Array.isArray(data) ? data.length : (data.data?.length || (Array.isArray(data.instances) ? data.instances.length : 0));
+            
+            return new Response(JSON.stringify({ 
+              success: true, 
+              message: `Conexão bem-sucedida! Encontradas ${count} instâncias. URL funcional: ${apiUrl}`,
+              data 
+            }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          } else {
+            const text = await response.text();
+            lastError = `HTTP ${response.status}: ${text}`;
           }
-        });
-
-        if (!response.ok) {
-          const text = await response.text();
-          let errDetail = text;
-          try {
-            const errData = JSON.parse(text);
-            errDetail = errData.message || errData.error || text;
-          } catch (e) {}
-          
-          throw new Error(`UazAPI Error (HTTP ${response.status}): ${errDetail}`);
+        } catch (e) {
+          lastError = e.message;
         }
-
-        const data = await response.json();
-        const count = Array.isArray(data) ? data.length : (data.data?.length || 0);
-
-        return new Response(JSON.stringify({ 
-          success: true, 
-          message: `Conexão bem-sucedida! Encontradas ${count} instâncias no seu tenant.`,
-          data 
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      } catch (fetchErr: any) {
-        console.error('[uazapi-manager] Fetch Error during test-config:', fetchErr);
-        throw new Error(`Erro na requisição à UazAPI: ${fetchErr.message}`);
       }
+
+      throw new Error(`Falha em todos os endpoints de teste. Último erro: ${lastError}`);
     }
 
     throw new Error('Invalid action');
