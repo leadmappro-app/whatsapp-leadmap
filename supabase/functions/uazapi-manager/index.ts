@@ -208,29 +208,41 @@ serve(async (req: Request) => {
       const finalBaseUrl = baseUrl.includes(username) ? baseUrl : `${baseUrl}/${username}`;
       const apiUrl = `${finalBaseUrl}/v1/instance`;
 
-      // Try to list deployments to see if token is valid
-      const response = await fetch(apiUrl, {
-        headers: {
-          'admintoken': adminToken,
-          'Content-Type': 'application/json'
+      console.log(`[uazapi-manager] Testing URL: ${apiUrl}`);
+
+      try {
+        const response = await fetch(apiUrl, {
+          headers: {
+            'admintoken': adminToken,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          let errDetail = text;
+          try {
+            const errData = JSON.parse(text);
+            errDetail = errData.message || errData.error || text;
+          } catch (e) {}
+          
+          throw new Error(`UazAPI Error (HTTP ${response.status}): ${errDetail}`);
         }
-      });
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.message || errData.error || `HTTP ${response.status} from UazAPI`);
+        const data = await response.json();
+        const count = Array.isArray(data) ? data.length : (data.data?.length || 0);
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          message: `Conexão bem-sucedida! Encontradas ${count} instâncias no seu tenant.`,
+          data 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (fetchErr: any) {
+        console.error('[uazapi-manager] Fetch Error during test-config:', fetchErr);
+        throw new Error(`Erro na requisição à UazAPI: ${fetchErr.message}`);
       }
-
-      const data = await response.json();
-      const count = Array.isArray(data) ? data.length : (data.data?.length || 0);
-
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: `Conexão bem-sucedida! Encontradas ${count} instâncias no seu tenant.`,
-        data 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
     }
 
     throw new Error('Invalid action');
