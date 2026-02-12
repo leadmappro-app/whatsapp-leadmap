@@ -206,8 +206,10 @@ serve(async (req: Request) => {
     if (action === 'test-config') {
       const testEndpoints = [
         `${baseUrl}/v1/instance`,
+        `${baseUrl}/v1/instance/list`,
         `${baseUrl}/${username}/v1/instance`,
-        `https://api.uazapi.com/${username}/v1/instance`
+        `https://api.uazapi.com/${username}/v1/instance`,
+        `https://api.uazapi.com/v1/instance`
       ].filter(url => url.startsWith('http'));
 
       let lastErrorDetail: any = "Nenhum endpoint respondeu";
@@ -223,7 +225,11 @@ serve(async (req: Request) => {
 
           if (response.ok) {
             const data = await response.json();
-            const count = Array.isArray(data) ? data.length : (data.data?.length || 0);
+            // Try to find count in various UazAPI response formats
+            const count = Array.isArray(data) ? data.length : 
+                          (data.data?.length || 
+                           data.count || 
+                           (data.instances ? data.instances.length : 0));
             
             return new Response(JSON.stringify({ 
               success: true, 
@@ -242,7 +248,7 @@ serve(async (req: Request) => {
       }
 
       return new Response(JSON.stringify({ 
-        error: `Falha na conexão com a UazAPI.`,
+        error: `Falha na conexão com a UazAPI. Verifique se o Admin Token e a URL estão corretos.`,
         details: lastErrorDetail
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
